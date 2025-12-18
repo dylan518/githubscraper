@@ -1,0 +1,22 @@
+package crudalloperationsservlet.Dtodatatransfer;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Persistence;
+
+import crudalloperationsservlet.Daodatatransfer.Daoaccess;
+
+public class datatransferdob {
+	EntityManagerFactory emf = Persistence.createEntityManagerFactory("Crudappoperatiopnstry");
+	EntityManager em = emf.createEntityManager();
+	EntityTransaction et = em.getTransaction();
+
+	public void updateDob(int slno, String dob) {
+		Daoaccess dao = em.find(Daoaccess.class, slno);
+		dao.setDob(dob);
+		et.begin();
+		em.merge(dao);
+		et.commit();
+	}
+}

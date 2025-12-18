@@ -1,0 +1,28 @@
+package Startpack;
+
+public class Switch_case {
+	
+	public static void main(String[] args) {
+		
+		//switch case is used to select one code from several set of code
+		 //here we have 3 set of code, case1,2,5
+	
+		int sum = 5;
+		
+		switch(sum)  //switch is use for the variable which is to be discussed
+		{
+		 case 1: //case and the value which is to be compared with the switch variable
+			 System.out.println("Sunday");
+		     break; //break is used to stop the comparesion and start comparing with next case
+		 case 2:
+			 System.out.println("Monday");
+		     break; //break is necessary as to make the loop pause and jump to next code
+		 case 5 :
+			 System.out.println("Tuesday");
+			 break;
+	     default:
+	    	 System.out.println("non of the above");
+	}
+	}
+
+}

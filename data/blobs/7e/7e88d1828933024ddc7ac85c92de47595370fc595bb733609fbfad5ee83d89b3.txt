@@ -1,0 +1,52 @@
+package com.example.cc;
+
+import com.example.cc.dao.DocumentDAO;
+import com.example.cc.dao.UserDAO;
+import com.example.cc.dao.EmpruntDAO;
+import com.example.cc.entities.Book;
+import com.example.cc.entities.Document;
+import com.example.cc.entities.User;
+import com.example.cc.entities.Emprunt;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.time.LocalDate;
+import java.util.List;
+
+public class MainTestJSON {
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Ajouter un utilisateur
+        User user = new User();
+        user.setName("Test Utilisateur");
+        user.setEmail("test@bibliotheque.com");
+        new UserDAO().save(user);
+        System.out.println("[USER]");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(user));
+
+        // Ajouter un livre
+        Book book = new Book();
+        book.setTitle("Programmation Java Moderne");
+        book.setDateCreation(LocalDate.now());
+        book.setAuthor("Auteur Java");
+        book.setIsbn("123456789");
+        book.setDatePublication(LocalDate.of(2022, 1, 1));
+        new DocumentDAO().save(book);
+        System.out.println("\n[BOOK]");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(book));
+
+        // Emprunter le livre
+        Emprunt emprunt = new Emprunt();
+        emprunt.setUser(user);
+        emprunt.setDocument(book);
+        emprunt.setDateEmprunt(LocalDate.now());
+        new EmpruntDAO().save(emprunt);
+        System.out.println("\n[EMPRUNT]");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(emprunt));
+
+        // Afficher les emprunts en cours
+        List<Emprunt> emprunts = new EmpruntDAO().getActiveEmprunts();
+        System.out.println("\n[EMPRUNTS EN COURS]");
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(emprunts));
+    }
+}

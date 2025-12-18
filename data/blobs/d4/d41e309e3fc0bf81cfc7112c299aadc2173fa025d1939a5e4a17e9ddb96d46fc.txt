@@ -1,0 +1,117 @@
+import java.util.Scanner;
+
+public class TicTacToe {
+    private char[][] board;     // 3x3 board to represent the Tic-Tac-Toe game
+    private char currentPlayer; // To track whose turn it is
+
+    // Constructor to initialize the board and start the first player as 'X'
+    public TicTacToe() {
+        board = new char[3][3]; // Create a 3x3 board
+        currentPlayer = 'X';    // Player 'X' starts
+        initializeBoard();      // Initialize the board
+    }
+
+    // Initialize the board with empty spaces
+    private void initializeBoard() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                board[i][j] = ' '; // Empty space represents an unfilled cell
+            }
+        }
+    }
+
+    // Display the current board on the console
+    public void printBoard() {
+        System.out.println("-------------");
+        for (int i = 0; i < 3; i++) {
+            System.out.print("| ");
+            for (int j = 0; j < 3; j++) {
+                System.out.print(board[i][j] + " | ");
+            }
+            System.out.println("\n-------------");
+        }
+    }
+
+    // Check if the game has a winner
+    public boolean checkWin() {
+        // Check rows and columns for a winner
+        for (int i = 0; i < 3; i++) {
+            if ((board[i][0] == currentPlayer && board[i][1] == currentPlayer && board[i][2] == currentPlayer) || 
+                (board[0][i] == currentPlayer && board[1][i] == currentPlayer && board[2][i] == currentPlayer)) {
+                return true;
+            }
+        }
+        
+        // Check diagonals for a winner
+        if ((board[0][0] == currentPlayer && board[1][1] == currentPlayer && board[2][2] == currentPlayer) || 
+            (board[0][2] == currentPlayer && board[1][1] == currentPlayer && board[2][0] == currentPlayer)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Check if the board is full (no empty spaces)
+    public boolean isBoardFull() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j] == ' ') {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // Take the user's move and update the board
+    public void playerMove(int row, int col) {
+        if (row >= 0 && row < 3 && col >= 0 && col < 3 && board[row][col] == ' ') {
+            board[row][col] = currentPlayer; // Mark the move
+        } else {
+            System.out.println("Invalid move! Try again.");
+        }
+    }
+
+    // Switch to the next player
+    public void switchPlayer() {
+        currentPlayer = (currentPlayer == 'X') ? 'O' : 'X';
+    }
+    
+    // Main method to run the game
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        TicTacToe game = new TicTacToe();
+        
+        while (true) {
+            game.printBoard();  // Print the board after each move
+            
+            // Get the player's move
+            System.out.println("Player " + game.currentPlayer + "'s turn");
+            System.out.print("Enter row (0-2): ");
+            int row = scanner.nextInt();
+            System.out.print("Enter column (0-2): ");
+            int col = scanner.nextInt();
+            
+            game.playerMove(row, col);  // Make the move
+            
+            // Check for a win
+            if (game.checkWin()) {
+                game.printBoard();
+                System.out.println("Player " + game.currentPlayer + " wins!");
+                break;
+            }
+            
+            // Check if the game is a tie (board is full)
+            if (game.isBoardFull()) {
+                game.printBoard();
+                System.out.println("It's a tie!");
+                break;
+            }
+            
+            // Switch to the next player
+            game.switchPlayer();
+        }
+        
+        scanner.close();
+    }
+}

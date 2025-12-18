@@ -1,0 +1,83 @@
+package org.example.pages;
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+import static org.example.stepDefs.Hooks.driver;
+
+public class P02_logIn {
+
+    // Locators
+    private final By userNameLogin = By.id("loginusername");
+    private final By passwordLogin = By.id("loginpassword");
+    private final By loginLink = By.id("login2");
+    private final By loginSubmitButton = By.xpath("//button[text()='Log in']");
+    private final By accountNameLocator = By.id("nameofuser");
+    private By errorMessageLocator = By.id("loginErrorMessage"); // Replace with actual ID or locator for the error message
+    private By loginErrorMessage = By.cssSelector(".modal-content .text-danger"); // Replace with the correct locator for the error message
+
+    // Constructor to initialize WebDriver and WebDriverWait
+    private WebDriver driver;
+    private WebDriverWait wait;
+
+    public P02_logIn(WebDriver testDriver) {
+        this.driver = testDriver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));  // Explicit wait with timeout
+    }
+
+    // Click the "Log in" link in the header
+    public void clickLoginLink() {
+        WebElement loginLinkElement = wait.until(ExpectedConditions.elementToBeClickable(loginLink));
+        loginLinkElement.click();
+    }
+
+    // Enters the username into the login form
+    public void enterUsername(String username) {
+        WebElement usernameElement = wait.until(ExpectedConditions.visibilityOfElementLocated(userNameLogin));
+        usernameElement.clear();
+        usernameElement.sendKeys(username);
+    }
+
+    // Enters the password into the login form
+    public void enterPassword(String password) {
+        WebElement passwordElement = wait.until(ExpectedConditions.visibilityOfElementLocated(passwordLogin));
+        passwordElement.clear();
+        passwordElement.sendKeys(password);
+    }
+
+    // Click the "Log in" button to submit the form
+    public void clickLoginButton() {
+        driver.findElement(loginSubmitButton).click();
+    }
+
+    // Check if the username is displayed on the account page
+    public WebElement isAccountNameDisplayed() {
+        // Sleep for a few seconds to wait for the alert to appear
+        try {
+            Thread.sleep(5000); // Sleep for 5000 milliseconds (5 seconds)
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+       WebElement accountNames= driver.findElement(accountNameLocator);
+        return accountNames;
+
+    }
+
+    public String getAlertMessage() {
+        driver.findElement(loginSubmitButton).click();
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            wait.until(ExpectedConditions.alertIsPresent());
+            Alert alert = driver.switchTo().alert();
+            String alertMessage = alert.getText();
+            alert.accept(); // Dismiss the alert
+            return alertMessage;
+        } catch (NoAlertPresentException e) {
+            return null;
+        }
+    }
+
+}

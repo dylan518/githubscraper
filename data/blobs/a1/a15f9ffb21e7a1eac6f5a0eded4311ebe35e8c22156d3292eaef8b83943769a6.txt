@@ -1,0 +1,93 @@
+package org.example.service;
+
+import org.example.dao.ContactDAO;
+import org.example.dao.AdresseDAO;
+import org.example.model.Contact;
+import org.example.model.Coordonnees;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class CacheService {
+    private final Map<Contact, List<Coordonnees>> contactsFavoris;
+    private final ContactDAO contactDAO;
+    private final AdresseDAO adresseDAO;
+
+    public CacheService(ContactDAO contactDAO, AdresseDAO adresseDAO) {
+        this.contactsFavoris = new HashMap<>();
+        this.contactDAO = contactDAO;
+        this.adresseDAO = adresseDAO;
+    }
+
+    public void initialiserCache() throws SQLException {
+        // Vider le cache
+        contactsFavoris.clear();
+
+        // Récupérer tous les contacts favoris
+        List<Contact> favoris = contactDAO.trouverTout().stream()
+                .filter(Contact::isFavoris)
+                .toList();
+
+        // Pour chaque contact favori, récupérer ses coordonnées
+        for (Contact contact : favoris) {
+            List<Coordonnees> coordonnees = new ArrayList<>();
+            adresseDAO.trouverAdressesParContactId(contact.getId_contact())
+                    .stream()
+                    .filter(adresse -> adresse.getCoordonnees() != null)
+                    .forEach(adresse -> coordonnees.add(adresse.getCoordonnees()));
+
+            contactsFavoris.put(contact, coordonnees);
+        }
+    }
+
+    public void ajouterFavori(Contact contact) throws SQLException {
+        System.out.println("Début ajout favori pour contact: " + contact.getNom() + " (ID: " + contact.getId_contact() + ")");
+
+        if (!contact.isFavoris()) {
+            contact.setFavoris(true);
+            contactDAO.mettreAJour(contact);
+        }
+
+        List<Coordonnees> coordonnees = new ArrayList<>();
+        var adresses = adresseDAO.trouverAdressesParContactId(contact.getId_contact());
+
+        System.out.println("Nombre d'adresses trouvées: " + adresses.size());
+
+        for (var adresse : adresses) {
+            System.out.println("Adresse trouvée: " + adresse.getRue());
+            System.out.println("Coordonnées de l'adresse: " +
+                    (adresse.getCoordonnees() != null ?
+                            adresse.getCoordonnees().getLatitude() + "," + adresse.getCoordonnees().getLongitude()
+                            : "null"));
+
+            if (adresse.getCoordonnees() != null) {
+                coordonnees.add(adresse.getCoordonnees());
+            }
+        }
+
+        System.out.println("Nombre de coordonnées ajoutées au cache: " + coordonnees.size());
+        contactsFavoris.put(contact, coordonnees);
+    }
+
+    public void retirerFavori(Contact contact) throws SQLException {
+        contact.setFavoris(false);
+        contactDAO.mettreAJour(contact);
+        contactsFavoris.remove(contact);
+    }
+
+    public Map<Contact, List<Coordonnees>> getContactsFavoris() {
+        return new HashMap<>(contactsFavoris);  // éviter la modification directe
+    }
+
+    public boolean estFavori(Contact contact) {
+        return contactsFavoris.containsKey(contact);
+    }
+
+    public void mettreAJourCoordonneesFavori(Contact contact, List<Coordonnees> nouvellesCoordonnees) {
+        if (contactsFavoris.containsKey(contact)) {
+            contactsFavoris.put(contact, new ArrayList<>(nouvellesCoordonnees));
+        }
+    }
+}

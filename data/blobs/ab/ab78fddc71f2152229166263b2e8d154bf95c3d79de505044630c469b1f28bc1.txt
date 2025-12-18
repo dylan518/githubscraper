@@ -1,0 +1,42 @@
+package LR9.Task5;
+
+public class LinkedListHead {
+    private Node head;
+
+    private static class Node {
+        int data;
+        Node next;
+
+        Node(int data) {
+            this.data = data;
+            next = null;
+        }
+    }
+
+    public void insertAtHead(int data) {
+        Node newNode = new Node(data);
+        newNode.next = head;
+        head = newNode;
+    }
+
+    public void printList() {
+        Node current = head;
+        while (current != null) {
+            System.out.print(current.data + " ");
+            current = current.next;
+        }
+        System.out.println();
+    }
+
+    public static void main(String[] args) {
+        LinkedListHead list = new LinkedListHead();
+
+        // Создание списка с головы
+        for (int i = 1; i <= 5; i++) {
+            list.insertAtHead(i);
+        }
+
+        // Вывод значений полей на экран
+        list.printList();
+    }
+}

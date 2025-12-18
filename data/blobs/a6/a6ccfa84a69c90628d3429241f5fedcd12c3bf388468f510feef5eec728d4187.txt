@@ -1,0 +1,56 @@
+package com.tourism.interceptor;
+
+import com.tourism.utils.AdminContext;
+import com.tourism.utils.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+@Component
+public class AdminJwtInterceptor implements HandlerInterceptor {
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        // 从请求头中获取token
+        String token = request.getHeader("Authorization");
+        
+        // 如果token为空,返回未授权
+        if (!StringUtils.hasText(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        try {
+            // 去掉Bearer前缀
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            
+            // 验证token并获取adminId
+            Integer adminId = jwtUtil.getAdminIdFromToken(token);
+            if (adminId == null) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
+            }
+            
+            // 将adminId存入ThreadLocal
+            AdminContext.setCurrentId(adminId);
+            return true;
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 请求结束后清除ThreadLocal中的数据
+        AdminContext.removeCurrentId();
+    }
+} 

@@ -1,0 +1,101 @@
+package fr.uge.booqin.models;
+
+import jakarta.persistence.*;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
+@Entity
+@Component
+@Table(name="WISH_TABLE")
+public class WishList {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
+    @OneToOne
+    @JoinColumn(name="User_Id")
+    private User userWisher;
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Good> goods = new ArrayList<>();
+    @Version
+    private long version;
+
+    public WishList(WishList wishList, User userWisher) {
+        this.version = wishList.version;
+        this.goods = new ArrayList<>(goods.stream().toList());
+        this.userWisher = userWisher;
+        this.id = wishList.id;
+    }
+    public WishList() {
+    }
+
+    public WishList(User userWisher) {
+        this.userWisher = Objects.requireNonNull(userWisher);
+    }
+
+    public WishList(User userWisher, List<Good> goods) {
+        this.userWisher = Objects.requireNonNull(userWisher);
+        this.goods = Objects.requireNonNull(goods);
+    }
+
+    public WishList(long id, User userWisher, List<Good> goods) {
+        this.id = id;
+        this.userWisher = userWisher;
+        this.goods = goods;
+    }
+
+    /**
+     * add good to wishlist.
+     * @param good
+     * the good you want to add.
+     */
+    public void addGood(Good good){
+        Objects.requireNonNull(good);
+        goods.add(good);
+    }
+
+    /**
+     * remove good from which list.
+     * @param good
+     * the good you want to remove.
+     */
+    public void removeGood(Good good){
+        Objects.requireNonNull(good);
+        goods.add(good);
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public User getUserWisher() {
+        return userWisher;
+    }
+
+    public List<Good> getGoods() {
+        return goods;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public void setUserWisher(User userWisher) {
+        this.userWisher = Objects.requireNonNull(userWisher);
+    }
+
+    public void setGoods(List<Good> goods) {
+        this.goods = Objects.requireNonNull(goods);
+    }
+
+    public void setVersion(long version) {
+        this.version = version;
+    }
+}

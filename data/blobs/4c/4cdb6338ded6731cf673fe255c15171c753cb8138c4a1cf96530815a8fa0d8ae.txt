@@ -1,0 +1,131 @@
+package controllers;
+
+import entities.Tourisme;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import services.TourismeService;
+
+import java.io.IOException;
+import java.util.List;
+
+public class TourismeListController {
+
+    @FXML
+    private VBox tourismeContainer;
+
+    @FXML
+    private Button addTourismeButton;
+
+    private final TourismeService tourismeService = new TourismeService();
+
+    @FXML
+    public void initialize() {
+        loadTourismes();
+        addTourismeButton.setOnAction(event -> openAddTourismePage());
+    }
+
+    public void loadTourismes() {
+        List<Tourisme> tourismes = tourismeService.getAll();
+        tourismeContainer.getChildren().clear();
+
+        for (Tourisme tourisme : tourismes) {
+            VBox card = createTourismeCard(tourisme);
+            tourismeContainer.getChildren().add(card);
+        }
+    }
+
+    private VBox createTourismeCard(Tourisme tourisme) {
+        VBox card = new VBox();
+        card.setSpacing(5);
+        card.setStyle("-fx-background-color: white; -fx-padding: 10; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 5);");
+
+        Label nameLabel = new Label("🏨 " + tourisme.getNom());
+        nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label typeLabel = new Label("Type: " + tourisme.getType());
+        Label locationLabel = new Label("📍 Localisation: " + tourisme.getLocalisation());
+        Label starsLabel = new Label("⭐ Étoiles: " + tourisme.getNbEtoiles());
+        Label contactLabel = new Label("📞 Contact: " + tourisme.getContact());
+        Label priceLabel = new Label("💰 Prix: " + tourisme.getPriceRange());
+
+        Button editButton = new Button("✏ Modifier");
+        editButton.setStyle("-fx-background-color: #ffcc00; -fx-text-fill: black; -fx-padding: 5 10; -fx-border-radius: 5;");
+        editButton.setOnAction(event -> openEditTourismePage(tourisme));
+
+        Button deleteButton = new Button("🗑 Supprimer");
+        deleteButton.setStyle("-fx-background-color: #ff4d4d; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
+        deleteButton.setOnAction(event -> deleteTourisme(tourisme.getId()));
+
+        // ✅ "Make a Reclamation" Button
+        Button reclamationButton = new Button("⚠ Faire une Réclamation");
+        reclamationButton.setStyle("-fx-background-color: #FF5722; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
+        reclamationButton.setOnAction(event -> openReclamationPage(tourisme.getId()));
+
+        HBox buttonBox = new HBox(10, editButton, deleteButton, reclamationButton);
+
+        card.getChildren().addAll(nameLabel, typeLabel, locationLabel, starsLabel, contactLabel, priceLabel, buttonBox);
+        return card;
+    }
+
+    private void deleteTourisme(int tourismeId) {
+        tourismeService.delete(tourismeId);
+        loadTourismes();
+    }
+
+    private void openAddTourismePage() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/reclamationettourisme/add_tourisme.fxml"));
+            Parent root = loader.load();
+
+            AddTourismeController controller = loader.getController();
+            controller.setTourismeListController(this);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Ajouter un Site Touristique");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void openEditTourismePage(Tourisme tourisme) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/reclamationettourisme/edit_tourisme.fxml"));
+            Parent root = loader.load();
+
+            EditTourismeController controller = loader.getController();
+            controller.setTourismeData(tourisme, this);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Modifier un Site Touristique");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void openReclamationPage(int tourismeId) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/reclamationettourisme/add_reclamation.fxml"));
+            Parent root = loader.load();
+
+            AddReclamationController controller = loader.getController();
+            controller.setTourismeId(tourismeId);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Faire une Réclamation");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}

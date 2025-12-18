@@ -1,0 +1,198 @@
+package org.main;
+
+import java.util.InputMismatchException;
+import java.util.Properties;
+import java.util.Scanner;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.cfg.Environment;
+
+public class App 
+{
+    public static void main( String[] args ){
+    	
+    	SessionFactory sf = getConnection(); 
+    	System.out.println(sf.openSession());
+        
+//    	insert(sf);
+    	read(sf);
+//    	update(sf);
+//    	delete(sf);
+//    	insertOrUpdate(sf);
+    }
+
+	
+
+	private static void delete(SessionFactory sf) {
+		Session session = sf.openSession();
+		
+		Scanner sc = new Scanner(System.in);
+        
+        System.out.print("ENTER EID : ");
+        int eid = sc.nextInt();
+		
+        Employee emp = session.get(Employee.class,eid);
+        
+        if(emp == null) {
+        	System.out.println("Employee with EID " + eid + " not found.");
+        }
+        else {
+			Transaction tx =session.beginTransaction();
+			session.remove(emp);
+			tx.commit();
+			System.out.println("Data Deleted");
+		}
+		
+		session.close();
+		
+	}
+
+	private static void update(SessionFactory sf) {
+		
+		Session session = sf.openSession();
+		
+		
+		Scanner sc = new Scanner(System.in);
+        
+        System.out.print("ENTER EID : ");
+        int eid = sc.nextInt();
+        
+        System.out.print("ENTER ESALARY : ");
+        double newSalary = sc.nextDouble();
+        
+        Employee emp = session.get(Employee.class,eid);
+        
+        if(emp != null) {
+        	emp.setEsalary(newSalary);
+        	
+        	Transaction trs = session.beginTransaction();
+        	session.merge(emp);
+        	trs.commit();
+        }
+        else {
+        	System.out.println("NOT EXIST");
+        }
+        
+        session.close();
+		
+	}
+
+	private static void read(SessionFactory sf) {
+		
+		Session session = sf.openSession();
+		
+		Scanner sc = new Scanner(System.in);
+        
+        System.out.print("ENTER EID : ");
+        int eid = sc.nextInt();
+        
+        Employee emp=  session.get(Employee.class,eid);
+//        System.out.println(emp);
+        
+//        First level cache
+//        emp=  session.get(Employee.class,eid);
+//        System.out.println(emp);
+        
+        if(emp == null) {
+        	System.out.println("NOT EXISTS");
+        }else {
+        	System.out.println(emp);
+        }
+        
+        sc.close();
+        session.close();
+		
+	}
+
+	public static void insert(SessionFactory sf) {
+		//Data Insert
+		
+		Session session = sf.openSession();
+		
+        Transaction trs = session.beginTransaction();
+        
+        Scanner sc = new Scanner(System.in);
+        
+        System.out.print("ENTER EID : ");
+        int eid = sc.nextInt();
+        System.out.println();
+        System.out.print("ENTER ENAME : ");
+        String ename = sc.next();
+        System.out.println();
+        System.out.println("ENTER EADDRESS : ");
+        String eaddress = sc.next();
+        System.out.println();
+        System.out.println("ENTER ESALARY : ");
+        double esalary = sc.nextDouble();
+        System.out.println();
+        
+        Employee employee = new Employee(eid,ename,eaddress,esalary);
+        
+        System.out.println(employee);
+//      int pk = (int) session.save(employee);
+        session.persist(employee);
+        
+        
+        sc.close();
+        trs.commit();
+        session.close();
+        // connection back to pool
+        // cache memory free 
+	}
+	
+	public static void insertOrUpdate(SessionFactory sf) {
+		
+		//Data Insert
+		
+		Session session = sf.openSession();
+		
+        Transaction trs = session.beginTransaction();
+        
+        Scanner sc = new Scanner(System.in);
+        
+        System.out.print("ENTER EID : ");
+        int eid = sc.nextInt();
+        System.out.println();
+        System.out.print("ENTER ENAME : ");
+        String ename = sc.next();
+        System.out.println();
+        System.out.println("ENTER EADDRESS : ");
+        String eaddress = sc.next();
+        System.out.println();
+        System.out.println("ENTER ESALARY : ");
+        double esalary = sc.nextDouble();
+        System.out.println();
+        
+        Employee employee = new Employee(eid,ename,eaddress,esalary);
+        
+        session.merge(employee);
+        trs.commit();
+        session.close();
+		
+	}	
+	
+
+	public static SessionFactory getConnection() {
+		// Loads cfg file
+		Configuration config = new Configuration() /* .addResource("Employee.hbm.xml") */ ;
+        Properties properties = new Properties();
+        properties.put(Environment.JAKARTA_JDBC_URL,"jdbc:mysql://localhost:3306/hbn");
+        properties.put(Environment.JAKARTA_JDBC_DRIVER,"com.mysql.cj.jdbc.Driver");
+        properties.put(Environment.JAKARTA_JDBC_USER,"root");
+        properties.put(Environment.JAKARTA_JDBC_PASSWORD,"password");
+        properties.put(Environment.HBM2DDL_AUTO,"update");
+        properties.put(Environment.SHOW_SQL,true);
+        properties.put(Environment.FORMAT_SQL,true);
+        
+        config.setProperties(properties);
+        config.addAnnotatedClass(Employee.class);
+        
+        //Setup ready
+        SessionFactory sessionFactory = config.buildSessionFactory();
+        
+        return sessionFactory;
+	}
+}

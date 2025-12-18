@@ -1,0 +1,351 @@
+package org.cottonlesergal.chat_manager;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.logging.LogUtils;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.*;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.MapColor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.client.event.ClientChatEvent;
+import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.Lazy;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+// The value here should match an entry in the META-INF/neoforge.mods.toml file
+@Mod(Chat_manager.MODID)
+public class Chat_manager {
+    // Define mod id in a common place for everything to reference
+    public static final String MODID = "chat_manager";
+    // Directly reference a slf4j logger
+    // Directly reference a slf4j logger
+    private static final Logger LOGGER = LogUtils.getLogger();
+    // Create a Deferred Register to hold Blocks which will all be registered under the "party_message" namespace
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
+    // Create a Deferred Register to hold Items which will all be registered under the "party_message" namespace
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
+    // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "party_message" namespace
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+
+    // Creates a new Block with the id "party_message:example_block", combining the namespace and path
+    public static final DeferredBlock<Block> EXAMPLE_BLOCK = BLOCKS.registerSimpleBlock("example_block", BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
+    // Creates a new BlockItem with the id "party_message:example_block", combining the namespace and path
+    public static final DeferredItem<BlockItem> EXAMPLE_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("example_block", EXAMPLE_BLOCK);
+
+    // Creates a new food item with the id "party_message:example_id", nutrition 1 and saturation 2
+    public static final DeferredItem<Item> EXAMPLE_ITEM = ITEMS.registerSimpleItem("example_item", new Item.Properties().food(new FoodProperties.Builder()
+            .alwaysEdible().nutrition(1).saturationModifier(2f).build()));
+
+    private PartyMessageScreen partyMessageScreen;
+
+    private int siblingLoc;
+
+    private HashMap<Integer, Boolean> messageType;
+
+    private ClientChatReceivedEvent chatReceivedEvent;
+
+    public int clientChatSibLoc = 9999;
+
+    public int componentLength = 0;
+    public boolean isInParty = false;
+    public boolean isUserMessage = false;
+    public boolean isUser = false;
+
+    public List<PartyMember> partyMembers;
+    public List<Component> siblings;
+
+    public final boolean[] allowMessage = {false};
+    /*public final boolean[] isUserMessage = {false};*/
+    public Collection<PlayerInfo> onlinePlayers;
+
+    public boolean userMessaged = false;
+
+    public boolean debug = false;
+
+    public static final Lazy<KeyMapping> EXAMPLE_MAPPING = Lazy.of(() -> new KeyMapping(
+            "key.party_message.open_party_menu", // Will be localized using this translation key
+            InputConstants.Type.KEYSYM, // Default mapping is on the keyboard
+            GLFW.GLFW_KEY_P, // Default key is P
+            "key.categories.party_message.menu" // Mapping will be in the misc category
+    ));
+
+    // Creates a creative tab with the id "party_message:example_tab" for the example item, that is placed after the combat tab
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> EXAMPLE_TAB = CREATIVE_MODE_TABS.register("example_tab", () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.party_message"))
+            .withTabsBefore(CreativeModeTabs.COMBAT)
+            .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
+            .displayItems((parameters, output) -> {
+                output.accept(EXAMPLE_ITEM.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
+            }).build());
+
+    // The constructor for the mod class is the first code that is run when your mod is loaded.
+    // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
+    public Chat_manager(IEventBus modEventBus, ModContainer modContainer)
+    {
+        // Register the commonSetup method for modloading
+        modEventBus.addListener(this::commonSetup);
+
+        // Register the Deferred Register to the mod event bus so blocks get registered
+        BLOCKS.register(modEventBus);
+        // Register the Deferred Register to the mod event bus so items get registered
+        ITEMS.register(modEventBus);
+        // Register the Deferred Register to the mod event bus so tabs get registered
+        CREATIVE_MODE_TABS.register(modEventBus);
+
+        // Register ourselves for server and other game events we are interested in.
+        // Note that this is necessary if and only if we want *this* class (Party_message) to respond directly to events.
+        // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
+        NeoForge.EVENT_BUS.register(this);
+
+        // Register our mod's ModConfigSpec so that FML can create and load the config file for us
+        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        // Initialize party message screen right away
+        initPartyMessageScreen();
+    }
+
+    private void initPartyMessageScreen() {
+        this.partyMessageScreen = new PartyMessageScreen(Component.literal("Party Chat Manager"));
+        // This will load the saved state from JSON, including any selected party
+        this.siblingLoc = partyMessageScreen.getSiblingLoc();
+    }
+
+    private void commonSetup(final FMLCommonSetupEvent event)
+    {
+        // Some common setup code
+        LOGGER.info("HELLO FROM COMMON SETUP");
+
+        if (Config.logDirtBlock)
+            LOGGER.info("DIRT BLOCK >> {}", BuiltInRegistries.BLOCK.getKey(Blocks.DIRT));
+
+        LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
+
+        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+    }
+
+    public void sendMessage(String message) {
+        if(Minecraft.getInstance().player != null && debug) {
+            Objects.requireNonNull(Minecraft.getInstance().player).sendSystemMessage(Component.literal(message));
+        }
+    }
+
+    // You can use SubscribeEvent and let the Event Bus discover methods to call
+    @SubscribeEvent
+    public void onServerStarting(ServerStartingEvent event)
+    {
+        // Do something when the server starts
+        LOGGER.info("HELLO from server starting");
+    }
+
+    @SubscribeEvent
+    public void onClientTick(ClientTickEvent.Post event) {
+        while (EXAMPLE_MAPPING.get().consumeClick()) {
+            if (Minecraft.getInstance().player != null) {
+                // Use existing instance instead of creating new one
+                Minecraft.getInstance().setScreen(this.partyMessageScreen);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onChatMessage(ClientChatReceivedEvent event) {
+        if (Minecraft.getInstance().player == null || Minecraft.getInstance().screen instanceof PartyMessageScreen) {
+            sendMessage("ln 180");
+            return;
+        }
+        sendMessage(String.valueOf(siblingLoc));
+        if (partyMessageScreen.getSiblingLoc() == -1){
+            if(userMessaged) {
+                sendMessage("User has sent message");
+                fetchSiblingLoc(event);
+                userMessaged = false;
+            }
+            sendMessage(String.valueOf(siblingLoc));
+            //This means that the player has yet to select a user message. We need them to do so, so that we can scrape the message for the username location
+            /*Style clickStyle = Style.EMPTY
+                    .withColor(ChatFormatting.BLUE)
+                    .withUnderlined(true)
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            Component.literal("Click to analyze this message")));
+
+            MutableComponent clickableText = Component.literal(" [Click me if this is a message from a user]")
+                    .withStyle(clickStyle);
+
+            event.getMessage().getSiblings().add(clickableText);*/
+            chatReceivedEvent = event;
+            return;
+        }
+        if (partyMessageScreen != null) {
+            sendMessage("ln202");
+            String currentParty = partyMessageScreen.getSelectedParty();
+            if (currentParty == null || partyMessageScreen.isBypass()) {
+                String form = String.format("Current Party: %s, is bypassed: %b", currentParty, partyMessageScreen.isBypass());
+                sendMessage("ln205");
+                sendMessage(form);
+                return;
+            }
+
+            partyMembers = partyMessageScreen.getSelectedPartyMembers();
+            siblings = event.getMessage().getSiblings();
+
+            LOGGER.info("Siblings Size: {}", siblings.size());
+            for (int i = 0; i < siblings.size(); i++) {
+                LOGGER.info("Sibling {}: {}", i, siblings.get(i));
+            }
+
+            componentLength = siblings.size();
+        }
+        sendMessage("ln219");
+        if(siblingLoc == clientChatSibLoc){
+            sendMessage("ln220");
+            String fs = String.format("Username: %s, Message author: %s",Minecraft.getInstance().player.getUUID(),event.getSender());
+            sendMessage(fs);
+            //TODO handle client message, ignore siblingLoc as it is a client message and not a system message. It will have a sender paired with the event so scraping message for username is redundant
+            if(!isInParty) {
+                isInParty = partyMembers.stream()
+                        .anyMatch(member -> event.getSender().toString().contains(member.getUuid().toString()));
+            }
+            if(!isUser) {
+                isUser = event.getSender().toString().contains(String.valueOf(Minecraft.getInstance().player.getUUID()));
+            }
+        }else{
+            sendMessage("ln230");
+            //TODO get the sibling at siblingLoc and check both literal as well as hover for username/playername/name/IGN
+            Component sibling;
+            if(siblings.size() >= siblingLoc){
+                sibling = siblings.get(siblingLoc);
+            }else{
+                return;
+            }
+            HoverEvent hoverEvent = sibling.getStyle().getHoverEvent();
+            String playerName = "";
+            try {
+                if (hoverEvent != null) {
+                    playerName = Objects.requireNonNull(hoverEvent.getValue(HoverEvent.Action.SHOW_TEXT)).getString();
+                }
+            } catch (Exception e) {
+                LOGGER.error("Error while getting hover event", e);
+            }
+            String finalPlayerName = playerName;
+            if(!isInParty) {
+                isInParty = partyMembers.stream()
+                        .anyMatch(member -> sibling.getContents().toString().contains(member.getName())) ||
+                            partyMembers.stream()
+                        .anyMatch(member -> finalPlayerName.contains(member.getName()));
+            }
+            if(!isUser) {
+                isUser = sibling.getContents().toString().contains(Minecraft.getInstance().player.getName().getString()) ||
+                         playerName.contains(Minecraft.getInstance().player.getName().getString());
+            }
+        }
+        String p = String.format("Is in party: %b, is a user message: %b, is user: %b", isInParty, isUserMessage, isUser);
+        sendMessage(p);
+        LOGGER.info("isUserMessage: {}", isUserMessage);
+        if ((isInParty) || isUser) {
+            sendMessage("User is either in party or current player");
+        }else{
+            sendMessage("Not in party");
+            LOGGER.info("User is not a party member");
+            event.setCanceled(true);
+        }
+        isUserMessage = false;
+        isInParty = false;
+        isUser = false;
+    }
+    @SubscribeEvent
+    public void onChat(ClientChatEvent event) {
+        userMessaged = true;
+    }
+
+    private void fetchSiblingLoc(ClientChatReceivedEvent event) {
+        //TODO Scrape through the chat event and determine the index of siblings as well as if it is a hovered event that contains the username
+        onlinePlayers = Objects.requireNonNull(Minecraft.getInstance().getConnection()).getOnlinePlayers();
+        if (event.isSystem()){
+            //TODO handle system message
+            for(int index = 0; index < event.getMessage().getSiblings().size(); index++){
+                Component sibling = event.getMessage().getSiblings().get(index);
+                HoverEvent hoverEvent = sibling.getStyle().getHoverEvent();
+                String playerName = "";
+                if (hoverEvent != null) {
+                    playerName = Objects.requireNonNull(hoverEvent.getValue(HoverEvent.Action.SHOW_TEXT)).getString();
+                }
+                for (PlayerInfo onlinePlayer : onlinePlayers) {
+                    /*siblings.get(i).getString().contains(onlinePlayer.getProfile().getName())*/
+                    try {
+                        if(sibling.getString().contains(onlinePlayer.getProfile().getName()) || Objects.requireNonNull(Objects.requireNonNull(sibling.getStyle().getHoverEvent()).getValue(HoverEvent.Action.SHOW_TEXT)).getString().contains(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())){
+                            //Literal component or hover event contains username, save location
+                            sendMessage(sibling.getString());
+                            this.siblingLoc = index;
+                            partyMessageScreen.setSiblingLoc(index);
+                            partyMessageScreen.saveChanges();
+                            sendMessage("Found username: "+sibling.getContents()+", or "+ Objects.requireNonNull(sibling.getStyle().getHoverEvent()).getValue(HoverEvent.Action.SHOW_TEXT)+" in chat");
+                            return;
+                        }else{
+                            //No username found in literal component, so reset siblingLoc
+                            sendMessage("Username not found in chat");
+                            LOGGER.error("Username not found in message");
+                            partyMessageScreen.setSiblingLoc(-1);
+                            this.siblingLoc = -1;
+                            userMessaged = false;
+                        }
+                    }catch (Exception e){
+                        LOGGER.error("Error while fetching sibling loc", e);
+                        sendMessage("Error while fetching sibling loc: " + e.getMessage());
+                    }
+
+                }
+            }
+            partyMessageScreen.saveChanges();
+
+        }else{
+            //TODO handle user message
+            sendMessage("Message is clientside so: " + clientChatSibLoc);
+            this.siblingLoc = clientChatSibLoc;
+            partyMessageScreen.setSiblingLoc(clientChatSibLoc);
+        }
+    }
+
+    // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
+    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    public static class ClientModEvents
+    {
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event)
+        {
+            // Some client setup code
+            LOGGER.info("HELLO FROM CLIENT SETUP");
+            LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+        }
+    }
+}

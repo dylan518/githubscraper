@@ -1,0 +1,61 @@
+package FirstBuild.StepDefinitions;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.Assert;
+import org.openqa.selenium.WebElement;
+
+import FirstBuild.TestComponents.BaseTest;
+import FirstBuild.pageObjects.CartPage;
+import FirstBuild.pageObjects.CheckOutPage;
+import FirstBuild.pageObjects.ConfirmationPage;
+import FirstBuild.pageObjects.LandingPage;
+import FirstBuild.pageObjects.ProductCatalogue;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+
+public class StepDefinition extends BaseTest {
+	
+	public LandingPage ld;
+	public ProductCatalogue pd;
+	public ConfirmationPage cf;
+	
+	@Given("I have landed on the ecommerce page")
+	public void I_have_landed_on_the_ecommerce_page() throws IOException {
+		
+		ld = launchApplication();
+	}
+	
+	@Given("^Logged in with username <.+> and password <.+>$")
+	public void logged_in_username_and_password(String username, String password) {
+		
+		pd = ld.loginApplication(username, password);
+	}
+	
+	@When("^I add product <.+> to cart$")
+	public void i_add_product_to_cart(String productName) {
+		
+		List<WebElement> products = pd.getProductList();
+		pd.addProductToCart(productName);
+		
+	}
+	
+	@When("Checkout <productname> and submit the order")
+	public void checkout_submit_order(String productName) {
+		
+		CartPage ct = pd.goToCartPage();
+		Boolean match = ct.verifyProductDisplay(productName);
+		Assert.assertTrue(false);
+		CheckOutPage co = ct.goToCheckout();
+		cf = co.submitOrder();
+	}
+	
+	@Then("{string} message is displayed on Confirmation Page")
+	public void message_displayed_confirmationPage(String string) {
+		
+		String confirmationMsg = cf.getConfirmationMessage();
+		Assert.assertTrue(confirmationMsg.equalsIgnoreCase(string));
+	}
+}

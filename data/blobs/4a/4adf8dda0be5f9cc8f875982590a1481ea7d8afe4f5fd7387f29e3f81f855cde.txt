@@ -1,0 +1,36 @@
+package com.encapsulatin_practice;
+
+public class BankAdmin {
+	private String account_holder_name;
+	private int account_number;
+	private int mobile_number;
+	String address;
+	public final String getAccount_holder_name() {
+		return account_holder_name;
+	}
+	public final void setAccount_holder_name(String account_holder_name) {
+		this.account_holder_name = account_holder_name;
+	}
+	public final int getAccount_number() {
+		return account_number;
+	}
+	public final void setAccount_number(int account_number) {
+		this.account_number = account_number;
+	}
+	public final int getMobile_number() {
+		return mobile_number;
+	}
+	public final void setMobile_number(int mobile_number) {
+		this.mobile_number = mobile_number;
+	}
+	public final String getAddress() {
+		return address;
+	}
+	public final void setAddress(String address) {
+		this.address = address;
+	}
+	
+	
+	
+
+}

@@ -1,0 +1,32 @@
+package com.bitlrn.hacker;
+
+public class TimeConverter {
+    public String timeConversion(String s) {
+        // Write your code here
+        String[] timeHhMmSs = s.split(":");
+        if (timeHhMmSs.length < 3) {
+            return s;
+        }
+        String hh = timeHhMmSs[0];
+        String mm = timeHhMmSs[1];
+        String ssAmOrPm = timeHhMmSs[2];
+        String ss = ssAmOrPm.substring(0, 2);
+        String AmOrPm = ssAmOrPm.substring(2, 4);
+        Integer hour = Integer.valueOf(hh);
+        if (AmOrPm.equals("AM")) {
+            String prefix ="";
+            if(hour <=9){
+                prefix = "0";
+            }
+            hh = (hour == 12) ? "00" : prefix+hour;
+        } else if (AmOrPm.equals("PM")) {
+            hh = (1 <= hour && hour <= 11) ? String.valueOf(hour + 12) : String.valueOf(hour);
+        }
+        return hh + ":" + mm + ":" + ss;
+    }
+
+    public static void main(String[] args) {
+        TimeConverter tc = new TimeConverter();
+        System.out.println(tc.timeConversion("06:40:03AM"));
+    }
+}

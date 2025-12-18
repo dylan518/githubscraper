@@ -1,0 +1,56 @@
+package stepDefinition;
+
+import config.BaseClass;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+
+public class UprigthAutomationLoginTest {
+
+    @Given("Given opening Upright Automation Login Page")
+    public void Given_opening_Upright_Automation_Login_Page(){
+        // opening the URL
+        BaseClass.getDriver().get("https://uprightautomation.online/login/");
+
+        //Hover over on Account
+        Actions obj = new Actions(BaseClass.getDriver());
+    //with the help of Actions class we can implement hover over, keyboard functionality, mouse functionality,
+        // right click, double click, create an element
+
+        //can use Xpath or linkText
+        // WebElement account = BaseClass.getDriver().findElement(By.xpath("/html/body/div/header/nav/div/div/div/div[2]/div/ul//li[7]/a"));
+                          //OR linkText
+        WebElement account = BaseClass.getDriver().findElement(By.linkText("Account"));
+    }
+
+
+    @When("user enter userName in the UA Login page")
+    public void user_enter_user_name_in_the_ua_login_page() {
+
+    }
+
+    @When("user enter email in the UA Login page")
+    public void user_enter_email_in_the_ua_login_page() {
+
+    }
+
+    @When("user enter password in the UA Login page")
+    public void user_enter_password_in_the_ua_login_page() {
+
+    }
+
+    @When("user click on Login button in the UA Login Page")
+    public void user_click_on_login_button_in_the_ua_login_page() {
+
+    }
+
+    @Then("verify that user navigated to the home Page in the Upright Automation app")
+    public void verify_that_user_navigated_to_the_home_page_in_the_upright_automation_app() {
+
+    }
+
+
+}

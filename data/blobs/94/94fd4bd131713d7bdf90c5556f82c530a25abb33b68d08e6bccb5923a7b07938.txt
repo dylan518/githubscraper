@@ -1,0 +1,50 @@
+package tn.iteam.DTOS;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import tn.iteam.Models.Admin;
+import tn.iteam.modelsecurite.RegisterRequest;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
+public class Admindto extends RegisterRequest {
+	private boolean isadmin ;
+	
+	
+	public static Admin toEntity(Admindto request)
+	{
+		return Admin.builder()
+				
+				.firstName(request.getFirstName())
+				.lastName(request.getLastName())
+				.email(request.getEmail())
+				.password(request.getPassword())
+				.adress(request.getAdress())
+				.phone(request.getPhone())
+				
+				.build();
+
+	}
+	public static Admindto fromEntity(Admin request)
+	{
+		return Admindto.builder()
+				.id(request.getId())
+				.firstName(request.getFirstName())
+				.lastName(request.getLastName())
+				.email(request.getEmail())
+				.password(request.getPassword())
+				.adress(request.getAdress())
+				.phone(request.getPhone())
+				
+				.build();
+
+	}
+
+
+}

@@ -1,0 +1,100 @@
+package utilities;
+
+
+	
+	import org.apache.poi.ss.usermodel.*;
+	import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+	import java.io.FileInputStream;
+	import java.io.IOException;
+	import java.util.ArrayList;
+	import java.util.HashMap;
+	import java.util.List;
+	import java.util.Map;
+
+	public class ExcelUtils {
+
+		/**
+		 * Reads the Excel file and returns the data as a list of maps. Each map
+		 * represents a row, with the keys being the column headers and the values being
+		 * the cell data.
+		 *
+		 * @param filePath the path to the Excel file
+		 * @return a list of maps containing the Excel data
+		 * @throws IOException if an I/O error occurs
+		 */
+		public static List<Map<String, String>> readExcel(String filePath) throws IOException {
+			List<Map<String, String>> excelData = new ArrayList<>();
+			FileInputStream fileInputStream = new FileInputStream(filePath);
+			Workbook workbook = new XSSFWorkbook(fileInputStream);
+
+			try {
+				Sheet sheet = workbook.getSheetAt(1);
+				if (sheet == null) {
+					throw new IllegalArgumentException("The provided Excel file does not contain any sheets.");
+				}
+
+				Row headerRow = sheet.getRow(0);
+				if (headerRow == null) {
+					throw new IllegalArgumentException("The provided Excel sheet does not contain any headers.");
+				}
+
+				List<String> headers = new ArrayList<>();
+				for (Cell cell : headerRow) {
+					headers.add(cell.getStringCellValue());
+				}
+
+				for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+					Row row = sheet.getRow(rowIndex);
+					if (row == null) {
+						continue;
+					}
+
+					Map<String, String> rowData = new HashMap<>();
+					for (int cellIndex = 0; cellIndex < headers.size(); cellIndex++) {
+						Cell cell = row.getCell(cellIndex);
+						String cellValue = getCellValueAsString(cell);
+						rowData.put(headers.get(cellIndex), cellValue);
+					}
+					excelData.add(rowData);
+				}
+			} finally {
+				workbook.close();
+				fileInputStream.close();
+			}
+
+			return excelData;
+		}
+
+		/**
+		 * Converts the cell value to a string.
+		 *
+		 * @param cell the cell to convert
+		 * @return the cell value as a string
+		 */
+		private static String getCellValueAsString(Cell cell) {
+			if (cell == null) {
+				return "";
+			}
+
+			switch (cell.getCellType()) {
+			case STRING:
+				return cell.getStringCellValue();
+			case NUMERIC:
+				if (DateUtil.isCellDateFormatted(cell)) {
+					return cell.getDateCellValue().toString();
+				} else {
+					return String.valueOf(cell.getNumericCellValue());
+				}
+			case BOOLEAN:
+				return String.valueOf(cell.getBooleanCellValue());
+			case FORMULA:
+				return cell.getCellFormula();
+			case BLANK:
+				return "";
+			default:
+				return "";
+			}
+		}
+	}
+

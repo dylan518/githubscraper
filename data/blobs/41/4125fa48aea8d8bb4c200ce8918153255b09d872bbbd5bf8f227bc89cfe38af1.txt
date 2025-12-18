@@ -1,0 +1,152 @@
+package fr.uphf.eddy.testUnitaires.modificationCompte;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
+import fr.uphf.eddy.model.token.Token;
+import fr.uphf.eddy.model.user.Role;
+import fr.uphf.eddy.model.user.UtilisateurSecurity;
+import fr.uphf.eddy.repository.TokenRepository;
+import fr.uphf.eddy.repository.UtilisateurSecurityRepository;
+import fr.uphf.eddy.service.utilisateur.AuthenticationService;
+import jakarta.transaction.Transactional;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+public class ModificationCompteTest {
+
+	private final MockMvc mockMvc;
+
+	private final UtilisateurSecurityRepository utilisateurSecurityRepository;
+	
+	private final TokenRepository tokenRepository;
+
+	private final AuthenticationService authenticationService;
+
+	private UtilisateurSecurity utilisateurSecurity;
+
+	private Token userToken;
+
+	@Autowired
+	public ModificationCompteTest(@Autowired MockMvc mockMvc, 
+				UtilisateurSecurityRepository utilisateurSecurityRepository, TokenRepository tokenRepository,
+				AuthenticationService authenticationService) {
+		this.mockMvc = mockMvc;
+		this.utilisateurSecurityRepository = utilisateurSecurityRepository;
+		this.tokenRepository = tokenRepository;
+		this.userToken = null;
+		this.authenticationService = authenticationService;
+	}
+
+	@BeforeEach
+	void inscrireUnUtilisateur(){
+		UtilisateurSecurity us = new UtilisateurSecurity("lucas.test@outlook.com", 
+				Role.USER, "LucasTest...123456", null);
+		authenticationService.register(us);
+		this.utilisateurSecurity = utilisateurSecurityRepository.findByEmail(us.getEmail()).get();
+		List<Token> tokens = tokenRepository.findAllValidTokenByUser(utilisateurSecurity.getId());
+		if(tokens.size() > 0){
+			this.userToken = tokens.get(0);
+			System.out.println(this.userToken.getToken());
+		}
+	}
+
+	@AfterEach
+	@Transactional
+	void supprierUnUtilisateur(){
+        Iterable<Token> tokens = tokenRepository.findAll();
+        for (Token token : tokens) {
+            this.tokenRepository.delete(token);
+        }
+		this.utilisateurSecurityRepository.delete(this.utilisateurSecurity);
+	}
+    
+    @Test
+	@DisplayName("Test modification compte succes")
+    void modificationCompteTestSucces() throws Exception{
+        String email = "lucas.test2@outlook.com";
+        String password = "LucasTest2...123456";
+
+        
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put("/api/v1/modif/modificationCompte")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.userToken.getToken())
+                .param("email",email)
+                .param("password",password);
+			
+		mockMvc.perform(request)
+				.andExpect(status().isOk());
+    }
+
+    @Test
+	@DisplayName("Test modification password succes")
+    void modificationComptePassword() throws Exception{
+        String email = "lucas.test2@outlook.com";
+        String password = "LucasTest2...123456";
+
+        
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put("/api/v1/modif/modificationCompte")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.userToken.getToken())
+                .param("email",email)
+                .param("password",password);
+			
+		mockMvc.perform(request)
+				.andExpect(status().isOk());
+    }
+
+    @Test
+	@DisplayName("Test modification Email succes")
+    void modificationCompteEmail() throws Exception{
+        String email = "lucas.test2@outlook.com";
+        String password = "LucasTest...123456";
+
+        
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put("/api/v1/modif/modificationCompte")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.userToken.getToken())
+                .param("email",email)
+                .param("password",password);
+			
+		mockMvc.perform(request)
+				.andExpect(status().isOk());
+    }
+
+    @Test
+	@DisplayName("Test modification sans Email")
+    void modificationCompteSansEmail() throws Exception{
+        String password = "LucasTest...123456";
+
+        
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put("/api/v1/modif/modificationCompte")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.userToken.getToken())
+                .param("password",password);
+			
+		mockMvc.perform(request)
+				.andExpect(status().isNotFound());
+    }
+
+    @Test
+	@DisplayName("Test modification sans mdp")
+    void modificationCompteSansPassword() throws Exception{
+        String email = "lucas.test2@outlook.com";
+
+        
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put("/api/v1/modif/modificationCompte")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.userToken.getToken())
+                .param("email",email);
+			
+		mockMvc.perform(request)
+				.andExpect(status().isNotFound());
+    }
+}

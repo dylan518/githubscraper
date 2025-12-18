@@ -1,0 +1,152 @@
+package com.apellidosHexagonal.ms_Apellidos_Hexagonal.infraestructure.adapters;
+
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.domain.aggregates.dto.EmpleadoDto;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.domain.aggregates.request.EmpleadoActualizarRequest;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.domain.aggregates.response.ResponseReniec;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.domain.ports.out.EmpleadoServiceOut;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.infraestructure.entity.EmpleadoEntity;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.infraestructure.mapper.EmpleadoMapper;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.infraestructure.repository.EmpleadoRepository;
+import com.apellidosHexagonal.ms_Apellidos_Hexagonal.infraestructure.rest.ReniecClient;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Log4j2
+public class EmpleadoOutAdapter implements EmpleadoServiceOut {
+
+    private final EmpleadoRepository empleadoRepository;
+    private final ReniecClient reniecClient;
+    private final EmpleadoMapper empleadoMapper;
+
+    @Value("${token.api}")
+    private String token;
+    @Override
+    public EmpleadoDto crearEmpleadoOut(String dni) {
+        try {
+            EmpleadoEntity empleadoEntity = getEntity(dni);
+
+            // Check if the number document already exists
+            if (!empleadoEntity.getNumDoc().isEmpty()) {
+                // Save the new employee to the database
+                EmpleadoEntity dato = empleadoRepository.save(empleadoEntity);
+                return empleadoMapper.mapToDto(dato);
+            } else {
+                throw new RuntimeException("ERROR AL REGISTRAR A LA PERSONA: El DNI es nulo");
+            }
+        } catch (DataIntegrityViolationException e) {
+            // This exception is thrown when there is a unique constraint violation
+            throw new RuntimeException("El DNI proporcionado ya existe. No se puede hacer duplicados.");
+        }
+    }
+
+    @Override
+    public EmpleadoDto buscarEmpleadoOut(String numDoc) {
+        Optional<EmpleadoEntity> dato = empleadoRepository.findByNumDoc(numDoc);
+        if(dato.isEmpty()){
+            throw new EntityNotFoundException("ERROR AL ENCONTRAR ENTIDAD CON DNI " + numDoc);
+        } else {
+            return empleadoMapper.mapToDto(dato.get());
+        }
+    }
+
+    @Override
+    public List<EmpleadoDto> buscarTodosActivosOut() {
+        List<EmpleadoEntity> dato = empleadoRepository.findAllByEstado(true);
+
+        if (dato.isEmpty()) {
+            throw new RuntimeException("No active employees found");
+        }
+
+        return dato.stream()
+                .map(empleadoMapper::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public EmpleadoDto actualizarEmpleadoOut(EmpleadoActualizarRequest empleadoActualizarRequest) {
+        Optional<EmpleadoEntity> empleadoEntity = empleadoRepository.findByNumDoc(empleadoActualizarRequest.getNumDoc());
+        if(empleadoEntity.isEmpty()){
+            throw new EntityNotFoundException("ERROR AL ENCONTRAR ENTIDAD CON DNI " + empleadoActualizarRequest.getNumDoc());
+        }else {
+            EmpleadoEntity empleado = empleadoEntity.get();
+
+            if (empleadoActualizarRequest.getEdad() != 0) {
+                empleado.setEdad(empleadoActualizarRequest.getEdad());
+            }
+            if (empleadoActualizarRequest.getCargo() != null && !empleadoActualizarRequest.getCargo().isEmpty()) {
+                empleado.setCargo(empleadoActualizarRequest.getCargo());
+            }
+            if (empleadoActualizarRequest.getSalario() != 0) {
+                empleado.setSalario(empleadoActualizarRequest.getSalario());
+            }
+            if (empleadoActualizarRequest.getTelefono() != null && !empleadoActualizarRequest.getTelefono().isEmpty()) {
+                empleado.setTelefono(empleadoActualizarRequest.getTelefono());
+            }
+            if (empleadoActualizarRequest.getCorreo() != null && !empleadoActualizarRequest.getCorreo().isEmpty()) {
+                empleado.setCorreo(empleadoActualizarRequest.getCorreo());
+            }
+            if (empleadoActualizarRequest.getDepartamento() != null && !empleadoActualizarRequest.getDepartamento().isEmpty()) {
+                empleado.setDepartamento(empleadoActualizarRequest.getDepartamento());
+            }
+
+            empleado.setDateUdpate(new Timestamp(System.currentTimeMillis()));
+            empleado.setUsuaUpdate("Denis");
+
+            empleadoRepository.save(empleado);
+
+            return empleadoMapper.mapToDto(empleado);
+
+        }
+
+    }
+
+    @Override
+    public EmpleadoDto eliminarEmpleadoOut(String numDoc) {
+        Optional<EmpleadoEntity> dato = empleadoRepository.findByNumDoc(numDoc);
+        if(dato.isEmpty()){
+            throw new EntityNotFoundException("ERROR AL ENCONTRAR ENTIDAD CON DNI " + numDoc);
+        } else {
+            EmpleadoEntity empleadoEntity = dato.get();
+            empleadoEntity.setEstado(false);
+            empleadoEntity.setDateDelete(new Timestamp(System.currentTimeMillis()));
+            empleadoEntity.setUsuaDelete("Denis");
+
+            empleadoRepository.save(empleadoEntity);
+
+            return empleadoMapper.mapToDto(empleadoEntity);
+        }
+    }
+
+    private EmpleadoEntity getEntity(String dni){
+        EmpleadoEntity empleadoEntity = new EmpleadoEntity();
+        ResponseReniec responseReniec = execute(dni);
+        if(Objects.nonNull(responseReniec)){
+            empleadoEntity.setNombre(responseReniec.getNombres());
+            empleadoEntity.setApellido(responseReniec.getApellidoPaterno() + " "
+                    + responseReniec.getApellidoMaterno());
+            empleadoEntity.setNumDoc(responseReniec.getNumeroDocumento());
+            empleadoEntity.setTipoDoc(responseReniec.getTipoDocumento());
+            empleadoEntity.setEstado(true);
+            empleadoEntity.setUsuaCrea("Denis");
+            empleadoEntity.setDateCrea(new Timestamp(System.currentTimeMillis()));
+        }
+        return empleadoEntity;
+    }
+
+    private ResponseReniec execute(String dni){
+        String head = "Bearer "+token;
+        return reniecClient.getInfoReniec(dni,head);
+    }
+}

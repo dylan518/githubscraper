@@ -1,0 +1,960 @@
+package ui;
+
+import javax.swing.*;
+
+import Object.CalendarEvent;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.List;
+import server.DBConnector;
+
+public class CalendarUI extends JFrame {
+    private JLabel monthLabel;
+    private JButton[][] dayButtons;
+    private Calendar calendar;
+    private JPanel chatAreaPanel;
+    private JTextField chatInput;
+    private JList<String> userList;
+    private DefaultListModel<String> userModel;
+    private JLabel chatLabel;
+    private PrintWriter out;
+    private BufferedReader in;
+    private String username;
+    private String company;
+    private int userId;
+    private int companyId;
+    private int selectedUserId = -1;
+    private int chatRoomId = 0;
+    private Socket socket;
+    private JScrollPane chatScrollPane;
+    private List<CalendarEvent> calendarEvents = new ArrayList<>();
+
+    public CalendarUI(String username, String company, int userId, int companyId) {
+        this.username = username;
+        this.company = company;
+        this.userId = userId;
+        this.companyId = companyId;
+        calendar = new GregorianCalendar();
+
+        setTitle(company + " - 공유 캘린더 (" + username + ")");
+        setSize(1000, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        JPanel calendarPanel = createCalendarPanel();
+        add(calendarPanel, BorderLayout.CENTER);
+
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        JPanel userPanel = createUserListPanel();
+        JPanel chatPanel = createChatPanel();
+
+        rightPanel.add(userPanel, BorderLayout.NORTH);
+        rightPanel.add(chatPanel, BorderLayout.CENTER);
+
+        add(rightPanel, BorderLayout.EAST);
+
+        connectToServer();
+        loadEvents();
+        updateCalendar();
+        loadChatHistory();
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    private JPanel createCalendarPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JButton prevButton = new JButton("◀ 이전");
+        JButton nextButton = new JButton("다음 ▶");
+
+        monthLabel = new JLabel("", SwingConstants.CENTER);
+        monthLabel.setFont(new Font("맑은 고딕", Font.BOLD, 18));
+
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+        buttonPanel.add(prevButton, BorderLayout.WEST);
+        buttonPanel.add(monthLabel, BorderLayout.CENTER);
+        buttonPanel.add(nextButton, BorderLayout.EAST);
+
+        topPanel.add(buttonPanel, BorderLayout.CENTER);
+        panel.add(topPanel, BorderLayout.NORTH);
+
+        prevButton.addActionListener(e -> {
+            calendar.add(Calendar.MONTH, -1);
+            updateCalendar();
+        });
+
+        nextButton.addActionListener(e -> {
+            calendar.add(Calendar.MONTH, 1);
+            updateCalendar();
+        });
+
+        JPanel daysPanel = new JPanel(new GridLayout(7, 7));
+        String[] days = { "일", "월", "화", "수", "목", "금", "토" };
+
+        for (String day : days) {
+            JLabel dayLabel = new JLabel(day, SwingConstants.CENTER);
+            dayLabel.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+            daysPanel.add(dayLabel);
+        }
+
+        dayButtons = new JButton[6][7];
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                dayButtons[i][j] = new JButton();
+                dayButtons[i][j].setFont(new Font("Arial", Font.PLAIN, 10));
+                dayButtons[i][j].setEnabled(false);
+                daysPanel.add(dayButtons[i][j]);
+            }
+        }
+
+        panel.add(daysPanel, BorderLayout.CENTER);
+        updateCalendar();
+
+        return panel;
+    }
+
+    private void updateCalendar() {
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                dayButtons[i][j].setText("");
+                dayButtons[i][j].setEnabled(false);
+
+                for (ActionListener al : dayButtons[i][j].getActionListeners()) {
+                    dayButtons[i][j].removeActionListener(al);
+                }
+            }
+        }
+
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        int firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1;
+        int daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+
+        monthLabel.setText(calendar.get(Calendar.YEAR) + "년 " + (calendar.get(Calendar.MONTH) + 1) + "월");
+
+        int day = 1;
+        for (int i = firstDayOfWeek; day <= daysInMonth; i++) {
+            int row = i / 7;
+            int col = i % 7;
+
+            if (row < dayButtons.length && col < dayButtons[row].length) {
+                JButton dayButton = dayButtons[row][col];
+                List<CalendarEvent> eventsForDay = getEventsForDay(day);
+
+                StringBuilder buttonText = new StringBuilder("<html>");
+                buttonText.append("<div style='text-align: left; font-size: 12px;'>")
+                        .append("<span style='font-weight: bold;'>")
+                        .append(day)
+                        .append("</span><br>");
+
+                int maxEventsToShow = 3;
+                for (int idx = 0; idx < Math.min(eventsForDay.size(), maxEventsToShow); idx++) {
+                    CalendarEvent event = eventsForDay.get(idx);
+                    buttonText.append("<span style='font-size: 14px;'>")
+                            .append(event.getTitle())
+                            .append("</span><br>");
+                }
+
+                if (eventsForDay.size() > maxEventsToShow) {
+                    buttonText.append("<span style='font-size: 12px; color: gray;'>")
+                            .append("+" + (eventsForDay.size() - maxEventsToShow) + " more")
+                            .append("</span><br>");
+                }
+
+                buttonText.append("</div></html>");
+
+                dayButton.setText(buttonText.toString());
+                dayButton.setHorizontalAlignment(SwingConstants.LEFT);
+                dayButton.setVerticalAlignment(SwingConstants.TOP);
+                dayButton.setEnabled(true);
+
+                int currentDay = day;
+                dayButton.addActionListener(e -> showEventDialog(currentDay, eventsForDay));
+                day++;
+            }
+        }
+    }
+
+    private void showEventDialog(int day, List<CalendarEvent> eventsForDay) {
+        JDialog dialog = new JDialog(this, "일정 확인 및 등록", true);
+        dialog.setLayout(new BorderLayout());
+
+        JPanel currentEventsPanel = new JPanel(new BorderLayout());
+        JLabel currentEventsLabel = new JLabel("현재 일정:");
+
+        DefaultListModel<CalendarEvent> listModel = new DefaultListModel<>();
+        JList<CalendarEvent> eventList = new JList<>(listModel);
+        eventList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        if (eventsForDay.isEmpty()) {
+            listModel.addElement(new CalendarEvent(-1, "일정이 없습니다.", null, null, ""));
+        } else {
+            for (CalendarEvent event : eventsForDay) {
+                listModel.addElement(event);
+            }
+        }
+
+        eventList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
+                        cellHasFocus);
+                if (value instanceof CalendarEvent) {
+                    CalendarEvent event = (CalendarEvent) value;
+                    label.setText(event.getTitle() +
+                            (event.getStartDate() != null
+                                    ? " (" + new SimpleDateFormat("HH:mm").format(event.getStartDate()) + " ~ " +
+                                            new SimpleDateFormat("HH:mm").format(event.getEndDate()) + ")"
+                                    : ""));
+                }
+                return label;
+            }
+        });
+
+        eventList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    CalendarEvent selectedEvent = eventList.getSelectedValue();
+                    if (selectedEvent != null && selectedEvent.getId() != -1) {
+                        dialog.dispose();
+                        showEventDetailsDialog(selectedEvent);
+                    }
+                }
+            }
+        });
+
+        currentEventsPanel.add(currentEventsLabel, BorderLayout.NORTH);
+        currentEventsPanel.add(new JScrollPane(eventList), BorderLayout.CENTER);
+
+        JButton addEventButton = new JButton("일정 등록");
+        addEventButton.addActionListener(e -> {
+            dialog.dispose();
+            showAddEventDialog(day);
+        });
+
+        currentEventsPanel.add(addEventButton, BorderLayout.SOUTH);
+
+        dialog.add(currentEventsPanel, BorderLayout.CENTER);
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void showAddEventDialog(int day) {
+        JDialog dialog = new JDialog(this, "일정 등록", true);
+        dialog.setLayout(new GridLayout(6, 2, 10, 10));
+
+        JLabel titleLabel = new JLabel("제목:");
+        JTextField titleField = new JTextField();
+
+        JLabel startTimeLabel = new JLabel("시작 시간:");
+        JComboBox<String> startHourBox = new JComboBox<>();
+        JComboBox<String> startMinuteBox = new JComboBox<>();
+        populateTimeSelectBoxes(startHourBox, startMinuteBox);
+
+        JLabel endTimeLabel = new JLabel("종료 시간:");
+        JComboBox<String> endHourBox = new JComboBox<>();
+        JComboBox<String> endMinuteBox = new JComboBox<>();
+        populateTimeSelectBoxes(endHourBox, endMinuteBox);
+
+        Calendar now = Calendar.getInstance();
+        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+        int currentMinute = now.get(Calendar.MINUTE);
+        int roundedMinute = (currentMinute / 5) * 5;
+
+        int endHour = (currentHour + 1) % 24;
+        int endMinute = roundedMinute;
+
+        startHourBox.setSelectedItem(String.format("%02d", currentHour));
+        startMinuteBox.setSelectedItem(String.format("%02d", roundedMinute));
+        endHourBox.setSelectedItem(String.format("%02d", endHour));
+        endMinuteBox.setSelectedItem(String.format("%02d", endMinute));
+
+        JLabel descriptionLabel = new JLabel("설명:");
+        JTextArea descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
+
+        JButton saveButton = new JButton("저장");
+        JButton cancelButton = new JButton("취소");
+
+        dialog.add(titleLabel);
+        dialog.add(titleField);
+
+        dialog.add(startTimeLabel);
+        JPanel startTimePanel = new JPanel(new FlowLayout());
+        startTimePanel.add(startHourBox);
+        startTimePanel.add(new JLabel(":"));
+        startTimePanel.add(startMinuteBox);
+        dialog.add(startTimePanel);
+
+        dialog.add(endTimeLabel);
+        JPanel endTimePanel = new JPanel(new FlowLayout());
+        endTimePanel.add(endHourBox);
+        endTimePanel.add(new JLabel(":"));
+        endTimePanel.add(endMinuteBox);
+        dialog.add(endTimePanel);
+
+        dialog.add(descriptionLabel);
+        dialog.add(descriptionScrollPane);
+
+        dialog.add(saveButton);
+        dialog.add(cancelButton);
+
+        saveButton.addActionListener(e -> {
+            String eventTitle = titleField.getText();
+            String eventDescription = descriptionArea.getText();
+            String selectedStartHour = (String) startHourBox.getSelectedItem();
+            String selectedStartMinute = (String) startMinuteBox.getSelectedItem();
+            String selectedEndHour = (String) endHourBox.getSelectedItem();
+            String selectedEndMinute = (String) endMinuteBox.getSelectedItem();
+
+            if (eventTitle.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "제목을 입력하세요.");
+                return;
+            }
+
+            try {
+                String selectedDate = getFormattedDate(day);
+                String startTime = selectedDate + " " + selectedStartHour + ":" + selectedStartMinute + ":00";
+                String endTime = selectedDate + " " + selectedEndHour + ":" + selectedEndMinute + ":00";
+
+                out.println(
+                        "CALENDAR_EVENT:" + eventTitle + "/" + startTime + "/" + endTime + "/" + eventDescription + "/"
+                                + companyId + "/" + userId);
+
+                DBConnector.saveEvent(companyId, eventTitle, startTime, endTime, eventDescription, userId);
+                loadEvents();
+                updateCalendar();
+
+                JOptionPane.showMessageDialog(dialog, "일정이 등록되었습니다.");
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "일정 등록 중 오류가 발생했습니다: " + ex.getMessage());
+            }
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private List<CalendarEvent> getEventsForDay(int day) {
+        List<CalendarEvent> eventsForDay = new ArrayList<>();
+        for (CalendarEvent event : calendarEvents) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(event.getStartDate());
+
+            if (cal.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
+                    cal.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) &&
+                    cal.get(Calendar.DAY_OF_MONTH) == day) {
+                eventsForDay.add(event);
+            }
+        }
+        eventsForDay.sort(Comparator.comparing(CalendarEvent::getStartDate));
+        return eventsForDay;
+    }
+
+    private String getFormattedDate(int day) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar cal = (Calendar) calendar.clone();
+        cal.set(Calendar.DAY_OF_MONTH, day);
+        return sdf.format(cal.getTime());
+    }
+
+    private void populateTimeSelectBoxes(JComboBox<String> hourBox, JComboBox<String> minuteBox) {
+        for (int i = 0; i < 24; i++) {
+            hourBox.addItem(String.format("%02d", i));
+        }
+        for (int i = 0; i < 60; i += 5) {
+            minuteBox.addItem(String.format("%02d", i));
+        }
+    }
+
+    private void loadEvents() {
+        calendarEvents = DBConnector.getEventsForMonth(companyId,
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.YEAR));
+    }
+
+    private JPanel createUserListPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel userLabel = new JLabel("사용자 목록");
+        userLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        userLabel.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+
+        userModel = new DefaultListModel<>();
+        userList = new JList<>(userModel);
+        userList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        userList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
+                        cellHasFocus);
+                label.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+                String item = value.toString();
+                if (item.endsWith("[offline]")) {
+                    label.setForeground(Color.GRAY);
+                } else if (item.endsWith("[online]")) {
+                    label.setForeground(Color.BLACK);
+                }
+                return label;
+            }
+        });
+
+        userModel.addElement("[" + company + "]");
+
+        userList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selectedUser = userList.getSelectedValue();
+                if (selectedUser != null) {
+                    if (selectedUser.equals("[" + company + "]")) {
+                        selectedUserId = -1;
+                        chatRoomId = DBConnector.getChatRoomIdForGroupChat(companyId);
+                        chatLabel.setText("단체 채팅방");
+                        loadChatHistory();
+                    } else {
+                        String usernameWithoutStatus = selectedUser.replaceAll("\\s\\[.*\\]$", "");
+                        selectedUserId = DBConnector.getUserIdByname(usernameWithoutStatus, companyId);
+                        chatRoomId = DBConnector.getChatRoomId(
+                                Math.min(userId, selectedUserId),
+                                Math.max(userId, selectedUserId));
+                        if (chatRoomId == -1) {
+                            chatRoomId = DBConnector.createChatRoom(
+                                    Math.min(userId, selectedUserId),
+                                    Math.max(userId, selectedUserId),
+                                    false,
+                                    companyId);
+                        }
+                        chatLabel.setText(usernameWithoutStatus + "와의 채팅");
+                        loadChatHistory();
+                    }
+                }
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(userList);
+
+        chatLabel = new JLabel("대화 상대를 선택하세요.", SwingConstants.CENTER);
+        chatLabel.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+        chatLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        panel.add(userLabel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(chatLabel, BorderLayout.SOUTH);
+        panel.setPreferredSize(new Dimension(250, 300));
+
+        return panel;
+    }
+
+    private JPanel createChatPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setPreferredSize(new Dimension(250, 0));
+
+        chatAreaPanel = new JPanel();
+        chatAreaPanel.setLayout(new BoxLayout(chatAreaPanel, BoxLayout.Y_AXIS));
+        chatAreaPanel.setBackground(Color.WHITE);
+
+        chatScrollPane = new JScrollPane(chatAreaPanel);
+        chatScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        chatInput = new JTextField();
+        chatInput.addActionListener(e -> {
+            String message = chatInput.getText();
+
+            if (!message.isEmpty()) {
+                if (selectedUserId == -1 && chatRoomId > 0) {
+                    out.println("MESSAGE:" + chatRoomId + ":" + username + ":" + message);
+                } else if (chatRoomId > 0) {
+                    out.println("MESSAGE:" + chatRoomId + ":" + username + ":" + message);
+                }
+                addMyMessage(message, getCurrentTime());
+                chatInput.setText("");
+            }
+        });
+
+        panel.add(chatScrollPane, BorderLayout.CENTER);
+        panel.add(chatInput, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private void connectToServer() {
+        try {
+            socket = new Socket("localhost", 7890);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            new Thread(this::receiveMessages).start();
+            out.println("LOGIN:" + username + ":" + companyId);
+        } catch (IOException e) {
+            System.err.println("서버에 연결할 수 없습니다.");
+            e.printStackTrace();
+        }
+    }
+
+    private void receiveMessages() {
+        try {
+            String message;
+            while ((message = in.readLine()) != null) {
+                if (message.startsWith("USERS:")) {
+                    updateUserList(message.substring(6));
+                } else if (message.startsWith("MESSAGE:")) {
+                    String[] parts = message.split(":", 4);
+                    int receivedChatRoomId = Integer.parseInt(parts[1]);
+                    String sender = parts[2];
+                    String chatMessage = parts[3];
+
+                    if (!sender.equals(username) && receivedChatRoomId == chatRoomId) {
+                        SwingUtilities.invokeLater(() -> addOtherMessage(sender, chatMessage, getCurrentTime()));
+                    }
+                } else if (message.startsWith("GROUP_MESSAGE:")) {
+                    String[] parts = message.split(":", 4);
+                    int receivedChatRoomId = Integer.parseInt(parts[1]);
+                    String sender = parts[2];
+                    String chatMessage = parts[3];
+
+                    if (receivedChatRoomId == chatRoomId) {
+                        SwingUtilities.invokeLater(() -> addOtherMessage(sender, chatMessage, getCurrentTime()));
+                    }
+                } else if (message.startsWith("CALENDAR_EVENT:")) {
+                    handleCalendarEvent(message.substring(15));
+                } else if (message.startsWith("DELETE_EVENT:")) {
+                    handleDeletedEvent(message.substring(13));
+                } else if (message.startsWith("UPDATE_EVENT:")) {
+                    handleUpdateEvent(message.substring(13));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleDeletedEvent(String eventDetails) {
+        try {
+            int eventId = Integer.parseInt(eventDetails.trim());
+            calendarEvents.removeIf(event -> event.getId() == eventId);
+            SwingUtilities.invokeLater(this::updateCalendar);
+            System.out.println("Deleted event synced: " + eventId);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid DELETE_EVENT format: " + eventDetails);
+            e.printStackTrace();
+        }
+    }
+
+    private void handleUpdateEvent(String eventDetails) {
+        try {
+            int lastSlashIndex = eventDetails.lastIndexOf('/');
+            if (lastSlashIndex == -1) {
+                throw new IllegalArgumentException("Invalid UPDATE_EVENT format: " + eventDetails);
+            }
+
+            String mainDetails = eventDetails.substring(0, lastSlashIndex);
+            String companyIdStr = eventDetails.substring(lastSlashIndex + 1);
+
+            String[] parts = mainDetails.split("/", 5);
+            if (parts.length != 5) {
+                throw new IllegalArgumentException("Invalid UPDATE_EVENT format: " + eventDetails);
+            }
+
+            int eventId = Integer.parseInt(parts[0]);
+            String title = parts[1];
+            String startTime = parts[2];
+            String endTime = parts[3];
+            String description = parts[4];
+            int companyId = Integer.parseInt(companyIdStr);
+
+            Date startDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(startTime);
+            Date endDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(endTime);
+
+            boolean eventFound = false;
+            for (CalendarEvent event : calendarEvents) {
+                if (event.getId() == eventId) {
+                    event.setTitle(title);
+                    event.setStartDate(startDate);
+                    event.setEndDate(endDate);
+                    event.setDescription(description);
+                    eventFound = true;
+                    break;
+                }
+            }
+
+            if (!eventFound) {
+                System.err.println("Event with ID " + eventId + " not found. Skipping update.");
+            } else {
+                SwingUtilities.invokeLater(this::updateCalendar);
+                System.out.println("Event updated successfully:");
+                System.out.println("Event ID: " + eventId);
+                System.out.println("Title: " + title);
+                System.out.println("Start Time: " + startTime);
+                System.out.println("End Time: " + endTime);
+                System.out.println("Description: " + description);
+                System.out.println("Company ID: " + companyId);
+            }
+        } catch (Exception e) {
+            System.err.println("Error processing UPDATE_EVENT: " + eventDetails);
+            e.printStackTrace();
+        }
+    }
+
+    private void handleCalendarEvent(String eventDetails) {
+        try {
+            System.out.println("수신된 CALENDAR_EVENT 데이터: " + eventDetails);
+
+            String[] parts = eventDetails.split("/");
+            if (parts.length == 6) {
+                String title = parts[0];
+                String startTime = parts[1];
+                String endTime = parts[2];
+                String description = parts[3];
+                int createdBy = Integer.parseInt(parts[5]);
+
+                Date startDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(startTime);
+                Date endDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(endTime);
+
+                CalendarEvent newEvent = new CalendarEvent(createdBy, title, startDate, endDate, description);
+
+                if (!calendarEvents.contains(newEvent)) {
+                    calendarEvents.add(newEvent);
+                    SwingUtilities.invokeLater(this::updateCalendar);
+                    System.out.println("새 일정 추가됨: " + newEvent);
+                }
+            } else {
+                System.err.println("잘못된 CALENDAR_EVENT 형식: " + eventDetails);
+            }
+        } catch (Exception e) {
+            System.err.println("CALENDAR_EVENT 처리 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private boolean isDetailDialogOpen = false;
+
+    private void showEventDetailsDialog(CalendarEvent event) {
+        if (isDetailDialogOpen) {
+            JOptionPane.showMessageDialog(this, "이미 다른 일정 디테일 창이 열려 있습니다.");
+            return;
+        }
+
+        isDetailDialogOpen = true;
+
+        JDialog dialog = new JDialog(this, "일정 상세 정보", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        JPanel detailPanel = new JPanel();
+        detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+        detailPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JLabel titleLabel = new JLabel(event.getTitle());
+        titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel startTimeLabel = new JLabel(
+                "시작 시간: " + new SimpleDateFormat("HH:mm").format(event.getStartDate()));
+        JLabel endTimeLabel = new JLabel(
+                "종료 시간: " + new SimpleDateFormat("HH:mm").format(event.getEndDate()));
+        startTimeLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+        endTimeLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+        startTimeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        endTimeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel descriptionLabel = new JLabel("설명:");
+        descriptionLabel.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+        descriptionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JTextArea descriptionArea = new JTextArea(event.getDescription(), 5, 30);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        descriptionArea.setEditable(false);
+        JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
+        descriptionScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        JButton closeButton = new JButton("닫기");
+        JButton editButton = new JButton("수정");
+        JButton deleteButton = new JButton("삭제");
+
+        closeButton.addActionListener(e -> {
+            dialog.dispose();
+            isDetailDialogOpen = false;
+        });
+
+        editButton.addActionListener(e -> {
+            dialog.dispose();
+            isDetailDialogOpen = false;
+            showEditEventDialog(event);
+        });
+
+        deleteButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(dialog, "정말로 삭제하시겠습니까?", "삭제 확인", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    out.println("DELETE_EVENT:" + event.getId() + "/" + companyId);
+
+                    DBConnector.deleteEvent(event.getId());
+                    JOptionPane.showMessageDialog(dialog, "일정이 삭제되었습니다.");
+                    dialog.dispose();
+                    isDetailDialogOpen = false;
+                    loadEvents();
+                    updateCalendar();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(dialog, "일정 삭제 중 오류가 발생했습니다: " + ex.getMessage());
+                }
+            }
+        });
+
+        buttonPanel.add(editButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(closeButton);
+
+        detailPanel.add(titleLabel);
+        detailPanel.add(Box.createVerticalStrut(15));
+        detailPanel.add(startTimeLabel);
+        detailPanel.add(endTimeLabel);
+        detailPanel.add(Box.createVerticalStrut(15));
+        detailPanel.add(descriptionLabel);
+        detailPanel.add(descriptionScrollPane);
+
+        dialog.add(detailPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        dialog.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                isDetailDialogOpen = false;
+            }
+        });
+        dialog.setVisible(true);
+    }
+
+    private void showEditEventDialog(CalendarEvent event) {
+        JDialog dialog = new JDialog(this, "일정 수정", true);
+
+        JPanel contentPanel = new JPanel(new GridLayout(5, 2, 10, 10));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel titleLabel = new JLabel("제목:");
+        JTextField titleField = new JTextField(event.getTitle());
+
+        JLabel startTimeLabel = new JLabel("시작 시간:");
+        JComboBox<String> startHourBox = new JComboBox<>();
+        JComboBox<String> startMinuteBox = new JComboBox<>();
+        populateTimeSelectBoxes(startHourBox, startMinuteBox);
+
+        JLabel endTimeLabel = new JLabel("종료 시간:");
+        JComboBox<String> endHourBox = new JComboBox<>();
+        JComboBox<String> endMinuteBox = new JComboBox<>();
+        populateTimeSelectBoxes(endHourBox, endMinuteBox);
+
+        JLabel descriptionLabel = new JLabel("설명:");
+        JTextArea descriptionArea = new JTextArea(event.getDescription(), 3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+
+        titleField.setText(event.getTitle());
+        startHourBox.setSelectedItem(new SimpleDateFormat("HH").format(event.getStartDate()));
+        startMinuteBox.setSelectedItem(new SimpleDateFormat("mm").format(event.getStartDate()));
+        endHourBox.setSelectedItem(new SimpleDateFormat("HH").format(event.getEndDate()));
+        endMinuteBox.setSelectedItem(new SimpleDateFormat("mm").format(event.getEndDate()));
+        descriptionArea.setText(event.getDescription());
+
+        contentPanel.add(titleLabel);
+        contentPanel.add(titleField);
+
+        contentPanel.add(startTimeLabel);
+        JPanel startTimePanel = new JPanel(new FlowLayout());
+        startTimePanel.add(startHourBox);
+        startTimePanel.add(new JLabel(":"));
+        startTimePanel.add(startMinuteBox);
+        contentPanel.add(startTimePanel);
+
+        contentPanel.add(endTimeLabel);
+        JPanel endTimePanel = new JPanel(new FlowLayout());
+        endTimePanel.add(endHourBox);
+        endTimePanel.add(new JLabel(":"));
+        endTimePanel.add(endMinuteBox);
+        contentPanel.add(endTimePanel);
+
+        contentPanel.add(descriptionLabel);
+        contentPanel.add(new JScrollPane(descriptionArea));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton saveButton = new JButton("저장");
+        JButton cancelButton = new JButton("취소");
+
+        saveButton.addActionListener(e -> {
+            String title = titleField.getText();
+            String description = descriptionArea.getText();
+            String startHour = (String) startHourBox.getSelectedItem();
+            String startMinute = (String) startMinuteBox.getSelectedItem();
+            String endHour = (String) endHourBox.getSelectedItem();
+            String endMinute = (String) endMinuteBox.getSelectedItem();
+
+            if (title.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "제목을 입력하세요.");
+                return;
+            }
+
+            try {
+                String selectedDate = new SimpleDateFormat("yyyy-MM-dd").format(event.getStartDate());
+                String startTime = selectedDate + " " + startHour + ":" + startMinute + ":00";
+                String endTime = selectedDate + " " + endHour + ":" + endMinute + ":00";
+
+                out.println("UPDATE_EVENT:" + event.getId() + "/" + title + "/" + startTime + "/" + endTime + "/"
+                        + description + "/" + companyId);
+
+                event.setTitle(title);
+                event.setStartDate(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(startTime));
+                event.setEndDate(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(endTime));
+                event.setDescription(description);
+
+                loadEvents();
+                updateCalendar();
+
+                JOptionPane.showMessageDialog(dialog, "일정이 수정되었습니다.");
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "일정 수정 중 오류가 발생했습니다: " + ex.getMessage());
+            }
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        dialog.setLayout(new BorderLayout());
+        dialog.add(contentPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void updateUserList(String userListMessage) {
+        SwingUtilities.invokeLater(() -> {
+            userModel.clear();
+            userModel.addElement("[" + company + "]");
+
+            List<String> onlineUsers = new ArrayList<>();
+            List<String> offlineUsers = new ArrayList<>();
+            String[] users = userListMessage.split(",");
+            for (String user : users) {
+                String[] parts = user.split(":");
+                String username = parts[0];
+                boolean isOnline = parts[1].equals("online");
+
+                if (!username.equals(this.username)) {
+                    if (isOnline) {
+                        onlineUsers.add(username + " [online]");
+                    } else {
+                        offlineUsers.add(username + " [offline]");
+                    }
+                }
+            }
+
+            onlineUsers.sort(String::compareTo);
+            offlineUsers.sort(String::compareTo);
+            onlineUsers.forEach(userModel::addElement);
+            offlineUsers.forEach(userModel::addElement);
+        });
+    }
+
+    private void loadChatHistory() {
+        chatAreaPanel.removeAll();
+
+        List<String> messages = DBConnector.getChatHistory(chatRoomId);
+
+        for (String message : messages) {
+            String[] parts = message.split("\\|\\|");
+            String sender = parts[0];
+            String content = parts[1];
+            String timestamp = parts[2];
+
+            if (sender.equals(username)) {
+                addMyMessage(content, timestamp);
+            } else {
+                addOtherMessage(sender, content, timestamp);
+            }
+        }
+
+        chatAreaPanel.revalidate();
+        scrollToBottom();
+    }
+
+    private void addMyMessage(String message, String timestamp) {
+        JPanel bubble = createBubble(message + " [" + timestamp + "]", new Color(220, 248, 198), FlowLayout.RIGHT);
+        chatAreaPanel.add(bubble);
+        chatAreaPanel.add(Box.createVerticalStrut(1));
+        chatAreaPanel.revalidate();
+        scrollToBottom();
+    }
+
+    private void addOtherMessage(String sender, String message, String timestamp) {
+        JPanel bubble;
+        if (selectedUserId == -1) {
+            bubble = createBubble(sender + ": " + message + " [" + timestamp + "]", Color.WHITE, FlowLayout.LEFT);
+        } else {
+            bubble = createBubble(message + " [" + timestamp + "]", Color.WHITE, FlowLayout.LEFT);
+        }
+        chatAreaPanel.add(bubble);
+        chatAreaPanel.add(Box.createVerticalStrut(1));
+        chatAreaPanel.revalidate();
+        scrollToBottom();
+    }
+
+    private JPanel createBubble(String message, Color bgColor, int alignment) {
+        JPanel bubble = new JPanel();
+        bubble.setLayout(new BorderLayout());
+        bubble.setBackground(bgColor);
+        bubble.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel messageLabel = new JLabel(
+                "<html><div style='width: 200px; word-wrap: break-word;'>" + message + "</div></html>");
+        messageLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+        bubble.add(messageLabel, BorderLayout.CENTER);
+
+        JPanel container = new JPanel();
+        container.setLayout(new FlowLayout(alignment));
+        container.add(bubble);
+        container.setMaximumSize(new Dimension(400, 50));
+
+        return container;
+    }
+
+    private void scrollToBottom() {
+        SwingUtilities.invokeLater(() -> chatScrollPane.getVerticalScrollBar()
+                .setValue(chatScrollPane.getVerticalScrollBar().getMaximum()));
+    }
+
+    private String getCurrentTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm");
+        return sdf.format(new Date());
+    }
+
+    public static void main(String[] args) {
+        new LoginUI();
+    }
+}

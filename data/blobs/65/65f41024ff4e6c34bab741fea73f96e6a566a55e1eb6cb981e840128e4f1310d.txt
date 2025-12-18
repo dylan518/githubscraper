@@ -1,0 +1,48 @@
+package sd;
+
+import dd.s;
+import java.util.NoSuchElementException;
+
+/* loaded from: classes.dex */
+public final class b extends s {
+
+    /* renamed from: a, reason: collision with root package name */
+    public final int f18277a;
+
+    /* renamed from: c, reason: collision with root package name */
+    public final int f18278c;
+    public boolean d;
+
+    /* renamed from: e, reason: collision with root package name */
+    public int f18279e;
+
+    public b(int i10, int i11, int i12) {
+        this.f18277a = i12;
+        this.f18278c = i11;
+        boolean z10 = true;
+        if (i12 <= 0 ? i10 < i11 : i10 > i11) {
+            z10 = false;
+        }
+        this.d = z10;
+        this.f18279e = z10 ? i10 : i11;
+    }
+
+    @Override // java.util.Iterator
+    public final boolean hasNext() {
+        return this.d;
+    }
+
+    @Override // dd.s
+    public final int nextInt() {
+        int i10 = this.f18279e;
+        if (i10 != this.f18278c) {
+            this.f18279e = this.f18277a + i10;
+        } else {
+            if (!this.d) {
+                throw new NoSuchElementException();
+            }
+            this.d = false;
+        }
+        return i10;
+    }
+}

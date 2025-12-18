@@ -1,0 +1,21 @@
+package com.atguigu.reflect;
+
+import com.atguigu.bean.Student;
+import org.junit.Test;
+
+import java.lang.reflect.Constructor;
+
+public class TestCreateObject {
+    @Test
+    public void test1()throws Exception{
+        Student s = new Student("谷姐",100);
+        System.out.println(s);
+    }
+    @Test
+    public void test2()throws Exception{
+        Class<?> clazz = Class.forName("com.atguigu.bean.Student");
+        Constructor<?> constructor = clazz.getDeclaredConstructor(String.class, int.class);
+        Object s = constructor.newInstance("谷姐", 100);
+        System.out.println(s);
+    }
+}

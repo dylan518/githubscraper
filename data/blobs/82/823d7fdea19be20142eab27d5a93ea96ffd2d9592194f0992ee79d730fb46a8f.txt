@@ -1,0 +1,210 @@
+package com.coastal.operations.loading.thcCost;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.coastal.common.ConfigurationProps;
+import com.coastal.core.util.CustomException;
+import com.coastal.operation.bookingEntry.BookingEntryResultBean;
+import com.coastal.operations.loading.tsThcportCost.TSThcPortCostResultBean;
+import com.coastal.user.UserDetail;
+
+@RestController
+@RequestMapping(value = "api/tsPortCost")
+public class TSPortCostController {
+
+	private final static Logger LOGGER = LoggerFactory.getLogger(TSPortCostController.class);
+
+	@Value("${export.files.serverpath}")
+	private String absolutePath;
+	
+	@Autowired
+	private TSPortCostService tsPortCostService;
+
+	// Getting List
+	@RequestMapping(value =  "/list")
+	public TSPortCostResultBean getAllList() throws Exception {
+		TSPortCostResultBean objResultBean = new TSPortCostResultBean();
+		objResultBean.setlRateControlBean(tsPortCostService.getAllList());
+		objResultBean.setSuccess(true);
+   		return objResultBean;
+   	}
+
+	//start with excel export g.g
+	@RequestMapping(value = "/exportTHCCOSTExcel")
+	public @ResponseBody boolean exportGeneralInvoiceExcel(HttpServletRequest request, HttpServletResponse response) {
+
+		UserDetail userDetails = (UserDetail) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		String userId = userDetails.getUserId();
+		boolean isSuccess = false;
+		try {
+
+			isSuccess = tsPortCostService.exportListExcelFile(ConfigurationProps.exportFilesPath, userId);
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+		}
+		return isSuccess;
+
+	}
+	// end with excel export g.g
+
+	@RequestMapping("/getContainerTypeList")
+	public @ResponseBody TSPortCostResultBean getContainerTypeList() throws CustomException {
+		List lgetContainerTypeList = new ArrayList();
+		TSPortCostResultBean obj = new TSPortCostResultBean();
+		try {
+
+			lgetContainerTypeList = tsPortCostService.getContainerTypeList();
+			System.out.println("Controller List Size:" + lgetContainerTypeList.size());
+			obj.setListRateControlBean(lgetContainerTypeList);
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+			throw new CustomException();
+		}
+
+		return obj;
+	}
+
+	@RequestMapping(value = "/add")
+	public @ResponseBody boolean addRateControl(@RequestBody TSPortCostBean objTSPortCostBean) throws CustomException {
+		boolean isSuccess = false;
+		TSPortCostResultBean objTSPortCostResultBean = new TSPortCostResultBean();
+		try {
+			isSuccess = tsPortCostService.addRateControl(objTSPortCostBean);
+			System.out.println("Result" + isSuccess);
+			objTSPortCostResultBean.setSuccess(isSuccess);
+
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+
+			throw new CustomException();
+		}
+
+		return isSuccess;
+	}
+
+	@RequestMapping(value = "/update")
+	public @ResponseBody boolean updateRateControl(@RequestBody TSPortCostBean objTSPortCostBean) throws CustomException {
+		boolean isSuccess = false;
+		TSPortCostResultBean objTSPortCostResultBean = new TSPortCostResultBean();
+		try {
+
+			isSuccess = tsPortCostService.updateRateControl(objTSPortCostBean);
+			objTSPortCostResultBean.setSuccess(isSuccess);
+
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+
+			throw new CustomException();
+		}
+
+		return isSuccess;
+	}
+
+	@RequestMapping("/getRateControlEditList")
+	public @ResponseBody TSPortCostBean getRateControlEditList(@RequestParam("rateControlCode") String rateControlCode) throws Exception {
+		TSPortCostBean objControlBean = new TSPortCostBean();
+		objControlBean = tsPortCostService.getRateControlEditList(rateControlCode);
+		return objControlBean;
+	}
+	
+	@RequestMapping(value="/delete")
+	  public TSPortCostResultBean delete(@RequestParam("rateControlCode") String rateControlCode,HttpServletRequest request) {
+		  
+		TSPortCostResultBean objResultBean = new TSPortCostResultBean();
+	  try { 
+		  
+		    objResultBean = tsPortCostService.delete(rateControlCode,request);
+	     }
+	  catch(Exception e){
+		  e.printStackTrace(); }
+	  return objResultBean;
+	  
+	  }
+
+	@RequestMapping("/getPort")
+	public @ResponseBody TSPortCostResultBean getSlot() throws CustomException {
+		List lgetPortList = new ArrayList();
+		TSPortCostResultBean obj = new TSPortCostResultBean();
+		try {
+
+			lgetPortList = tsPortCostService.getPort();
+			obj.setListRateControlBean(lgetPortList);
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+			throw new CustomException();
+		}
+
+		return obj;
+	}
+
+	@RequestMapping("/calcThcCost")
+	public @ResponseBody TSPortCostResultBean calculateThcCost(@RequestBody String voyageId) throws Exception {
+		//TSPortCostResultBean resultBean = tsPortCostService.calculateEximThcCost(voyageId);
+		//if (resultBean.isSuccess()) {
+			TSPortCostResultBean linerResultBean = tsPortCostService.calculateLinerThcCost(voyageId);
+			return linerResultBean;
+		/*} else {
+			return resultBean;
+		}*/
+	}
+
+	@RequestMapping("/getPendingArrivalSailing")
+	public @ResponseBody TSPortCostResultBean getPendingArrivalSailing(@RequestParam("voyageId") String voyageId,@RequestParam("screen") String screen) throws Exception {
+		
+		TSPortCostResultBean linerResultBean=null;
+		try {
+		     linerResultBean = tsPortCostService.getPendingArrivalSailing(voyageId,screen);
+
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+		}
+
+		return linerResultBean;
+
+	}
+
+	@RequestMapping("/getTHCCostList")
+	public @ResponseBody TSPortCostResultBean getThcCostList(@RequestBody String voyageId) throws Exception {
+		// TSPortCostResultBean resultBean =
+		// tsPortCostService.getEximThcCostList(voyageId);
+		TSPortCostResultBean linerResultBean = tsPortCostService.getLinerThcCostList(voyageId);
+		String thcCost = tsPortCostService.getThcTotalCost(voyageId);
+		linerResultBean.setThcCost(thcCost);
+		linerResultBean.setLinerThcCostList(linerResultBean.getLinerThcCostList());
+		return linerResultBean;
+	}
+
+	@RequestMapping(value = "/exportExcel", method = RequestMethod.POST)
+	public TSPortCostResultBean exportGeneralLedgerExcel(@RequestBody String voyageId, HttpServletRequest request, HttpServletResponse response) {
+		TSPortCostResultBean objbean = new TSPortCostResultBean();
+
+//		boolean isSuccess = false;
+		try {
+
+			String filePath = tsPortCostService.exportExcel(absolutePath, voyageId);
+			objbean.setFilePath(filePath);
+			objbean.setSuccess(true);
+			
+		} catch (Exception e) {
+			LOGGER.error("Error", e);
+		}
+		return objbean;
+	}
+}

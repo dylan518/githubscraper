@@ -1,0 +1,40 @@
+package dataobjectaccesdao;
+
+import model.Employee;
+
+import java.sql.*;
+import java.util.*;
+
+public class EmployeeDAO {
+	
+	private static final String DB_URL = "jdbc:mysql://localhost:3306/myDB";
+	private static final String DB_USER = "root";
+	private static final String DB_PASSWORD = "password";
+	
+	public List<Employee> getEmployees() {
+		List<Employee> employees = new ArrayList<>();
+		
+		try (Connection cnn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+			String query = "SELECT * FROM employees";
+			PreparedStatement prpt = cnn.prepareStatement(query);
+			ResultSet rs = prpt.executeQuery();
+			
+			while (rs.next()) {
+				Employee emp = new Employee(
+						rs.getInt("id"),
+						rs.getString("first_name"),
+						rs.getString("last_name"),
+						rs.getDouble("salary"),
+						rs.getInt("age")
+						);
+				employees.add(emp);
+						
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return employees;
+	}
+
+}

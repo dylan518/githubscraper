@@ -1,0 +1,57 @@
+package com.courses.repository;
+
+import com.courses.common.exception.BaseException;
+import com.courses.database.CourseDataBase;
+import com.courses.exception.ExceptionHelper;
+import com.courses.model.Course;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class CourseRepository {
+  public static final String COURSE_NOT_FOUND_LOG_MESSAGE =
+      "Course with course id %s is not in database.";
+  public static final String COURSE_NOT_FOUND_API_ERROR_MESSAGE = "Course not found with id : %s";
+  public static final String COURSE_ID = "CourseId";
+  public static final String COURSE_NAME = "CourseName";
+  private final CourseDataBase courseDataBase;
+
+  public Course addCourse(String courseName) {
+    return courseDataBase.addCourse(courseName);
+  }
+
+  public List<Course> getCourses() {
+    return courseDataBase.getCourses();
+  }
+
+  public Course getCourseById(Long id) {
+    return Optional.ofNullable(courseDataBase.getCourseById(id))
+        .orElseThrow(() -> getException(id, Map.of(COURSE_ID, String.valueOf(id))));
+  }
+
+  public Course updateCourse(long id, String name) {
+    return Optional.ofNullable(courseDataBase.updateCourse(id, name))
+        .orElseThrow(
+            () -> getException(id, Map.of(COURSE_ID, String.valueOf(id), COURSE_NAME, name)));
+  }
+
+  public Course deleteCourse(Long id) {
+    return Optional.ofNullable(courseDataBase.deleteCourse(id))
+        .orElseThrow(() -> getException(id, Map.of(COURSE_ID, String.valueOf(id))));
+  }
+
+  private BaseException getException(Long id, Map<String, String> logParams) {
+    return ExceptionHelper.createException(
+        HttpStatus.NOT_FOUND,
+        COURSE_NOT_FOUND_LOG_MESSAGE.formatted(id),
+        COURSE_NOT_FOUND_API_ERROR_MESSAGE.formatted(id),
+        logParams,
+        List.of(COURSE_ID),
+        null);
+  }
+}

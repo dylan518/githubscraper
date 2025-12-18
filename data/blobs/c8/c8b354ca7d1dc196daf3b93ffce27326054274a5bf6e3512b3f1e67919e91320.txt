@@ -1,0 +1,75 @@
+/*
+⣺
+
+    һʼǱ࣬⣬ҽ˽лṩsetget
+
+    һɲεĽӿڣInsertDrawable,ýӿʲôж塣
+
+    һࡣʵInsertDrawableӿڣʵַ
+
+    һࡣʵInsertDrawableӿڣʵַ
+
+    һʾࡣʵInsertDrawableӿڣʵַ
+
+    һӡࡣʵInsertDrawableӿڣʵַ
+
+
+    "ʼǵ"һInsertDrawableӿԣñʼǱԿɲꡢ̡ʾӡ
+
+    дԳ򣬴ӿڣʾӿڵá
+
+    * */
+
+public class Homework {
+    public static void main(String[] args) {
+        Desktop desktop=new Desktop(new JianPan());
+        desktop.getInsert().Divice();
+        InsertDrawable aa=new Mouse();
+        Desktop bb=new Desktop();
+        bb.setInsert(aa);
+        bb.getInsert().Divice();
+    }
+}
+
+class Desktop{
+    private InsertDrawable insert;
+    public void setInsert(InsertDrawable insert){
+        this.insert=insert;
+    }
+    public InsertDrawable getInsert(){
+        return insert;
+    }
+    public Desktop(){}
+
+    public Desktop(InsertDrawable insert){
+        this.insert=insert;
+    }
+}
+
+interface InsertDrawable{
+    void Divice();
+}
+
+class Mouse implements InsertDrawable{
+    public void Divice(){
+        System.out.println("");
+    }
+}
+
+class JianPan implements InsertDrawable{
+    public void Divice(){
+        System.out.println("");
+    }
+}
+
+class XianShiQi implements InsertDrawable{
+    public void Divice(){
+        System.out.println("ʾ");
+    }
+}
+
+class Printer implements InsertDrawable{
+    public void Divice(){
+        System.out.println("ӡ");
+    }
+}

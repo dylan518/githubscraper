@@ -1,0 +1,123 @@
+package org.lensjudge.app;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.lensjudge.app.process.ExecutionTime;
+import org.lensjudge.app.process.ProcessAdapter;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProcessTest {
+
+    @Test
+    @DisplayName("Check execution time interruption")
+    void tempsExec() throws InterruptedException {
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("sleep", "5"));
+
+        ExecutionTime timedProcess = new ExecutionTime(process, 2000); // 2000ms = 2s
+
+        timedProcess.start();
+
+        process.waitFor(1000, TimeUnit.MILLISECONDS);
+
+        assertTrue(process.isAlive(), "Process should still be running after 1s");
+
+        long startTime = System.currentTimeMillis();
+        process.waitFor(3000, TimeUnit.MILLISECONDS);
+
+        long elapsedTime = (System.currentTimeMillis() - startTime) / 1000;
+        assertFalse(process.isAlive(), "Process should be interrupted after " + timedProcess.getTimeLimit() / 1000 + "s. (Current execution time : " + elapsedTime + "s.)");
+    }
+
+    @Test
+    @DisplayName("Write to process input")
+    void inputRedirecting() throws IOException {
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("cat"));
+
+        process.start();
+
+        process.getOutputStream().write("Hello, World!".getBytes());
+        process.getOutputStream().close();
+
+        String output = new String(process.getInputStream().readAllBytes());
+
+        assertTrue(output.contains("Hello, World!"), "Output should contain 'Hello, World!'");
+    }
+
+    @Test
+    @DisplayName("Read from process output")
+    void outputRedirecting() throws IOException {
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("echo", "Hello, World!"));
+
+        process.start();
+
+        String output = new String(process.getInputStream().readAllBytes());
+
+        assertTrue(output.contains("Hello, World!"), "Output should contain 'Hello, World!'");
+    }
+
+    @Test
+    @DisplayName("Check process exit value")
+    void exitValue() throws InterruptedException {
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("echo", "Hello, World!"));
+        ExecutionTime timedProcess = new ExecutionTime(process, 1000);
+        timedProcess.start();
+
+        timedProcess.waitFor();
+
+        int exitValue = process.exitValue();
+
+        assertEquals(0, exitValue, "Exit value should be 0");
+    }
+
+    @Test
+    @DisplayName("Check input stream reading")
+    void readInputStream() throws InterruptedException {
+        // Create a new process to run the echo command
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("echo", "Hello, World!"));
+
+        // Start the process
+        process.start();
+
+        // Wait for the process to complete before reading the output
+        process.waitFor();
+
+        // Read the output stream from the process
+        InputStream inputStream = process.getInputStream();
+        List<String> output = new BufferedReader(new InputStreamReader(inputStream))
+                .lines().toList();
+
+        // Assert that the output matches the expected result
+        assertEquals("Hello, World!", output.getFirst(), "Output should contain 'Hello, World!'");
+    }
+
+    @Test
+    @DisplayName("Check error stream reading")
+    void readErrorStream() throws InterruptedException {
+        // Create a new process to run the echo command
+        ProcessAdapter process = new ProcessAdapter(new ProcessBuilder("ls", "nonexistentfile"));
+
+        // Start the process
+        process.start();
+
+        // Wait for the process to complete before reading the output
+        process.waitFor();
+
+        // Read the error stream from the process
+        InputStream errorStream = process.getErrorStream();
+        String error = new BufferedReader(new InputStreamReader(errorStream))
+                .lines().collect(Collectors.joining(System.lineSeparator()));
+
+        System.out.println(error);
+        // Assert that the error message contains the expected result
+        assertTrue(error.contains("Aucun fichier ou dossier de ce nom"), "Error message should contain 'No such file or directory'");
+    }
+}

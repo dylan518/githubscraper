@@ -1,0 +1,48 @@
+package com.TShoes.shoppingcart;
+
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.TShoes.common.entity.CartItem;
+import com.TShoes.common.entity.CartItemsForCus;
+import com.TShoes.common.entity.Customer;
+import com.TShoes.common.entity.product.Product;
+import com.TShoes.product.ProductRepository;
+
+@Service
+@Transactional
+public class ShoppingCartForCusService {
+	@Autowired private CartItemForCusRepository cartRepo;
+	@Autowired private ProductRepository productRepo;
+	@Autowired private CartItemRepository cartRepot;
+	
+	public void addProductForCus(Integer productId, Customer customer) 
+			throws ShoppingCartException {
+		
+		Product product = new Product(productId);
+		CartItem x = cartRepot.findByCustomerAndProduct(customer, product);
+		CartItemsForCus newcart= new CartItemsForCus();
+		newcart.setCustomer(x.getCustomer());
+		newcart.setProduct(x.getProduct());
+		newcart.setQuantity(x.getQuantity());
+		cartRepo.save(newcart);
+		
+	}
+	
+	public List<CartItemsForCus> listCartItems(Customer customer) {
+		return cartRepo.findByCustomer(customer);
+	}
+	public CartItemsForCus listCartItemsForCus(Customer customer ,Product product) {
+		return  cartRepo.findByCustomerAndProduct(customer,product);
+	}
+	public void deleteByCustomer(Customer customer) {
+		cartRepo.deleteByCustomer(customer.getId());
+	}
+	public void removeProduct(Integer productId, Customer customer) {
+		cartRepo.deleteByCustomerAndProduct(customer.getId(), productId);
+	}
+}

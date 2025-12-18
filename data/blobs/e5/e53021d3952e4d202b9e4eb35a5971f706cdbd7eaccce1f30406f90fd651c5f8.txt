@@ -1,0 +1,79 @@
+package interfaz;
+
+interface Verificacion {
+    boolean esValido(String variable);
+
+    boolean getValidacion();
+}
+
+public class CorreoVerificador{
+    private static CorreoVerificador instancia;
+    private boolean correoExiste=false; 
+
+    private CorreoVerificador(){}
+
+    public static CorreoVerificador getInstancia() {
+        if (instancia == null) {
+            instancia = new CorreoVerificador();
+        }
+        return instancia;
+    }
+
+    public boolean getVerificacion(String tipo, String dato){
+        Verificacion verificacion;
+        tipo.toLowerCase();
+
+        if(Agenda.getInstancia().getContacto().isEmpty()){
+            correoExiste=false;
+        }else{
+        for (Contacto listaContacto : Agenda.getInstancia().getContacto().values()) {
+          if (listaContacto.getCorreo().contains(dato)) {
+              correoExiste=true;
+          }else{
+            correoExiste=false;
+          }
+        }
+    }
+      
+        if(tipo.equals("correo") && correoExiste==false){
+            verificacion=new ValidarCorreo();
+            verificacion.esValido(dato);
+            return verificacion.getValidacion();
+        }else{
+            System.out.println("Correo no valido o repetido");
+            return false;
+        }
+                
+
+    }
+   
+}
+
+
+
+
+class ValidarCorreo implements Verificacion{
+    private recolectorDominios dominios = new recolectorDominios();
+    private boolean validador=false;
+
+    @Override
+    public boolean esValido(String correo) {
+        if (!correo.isEmpty()) {
+            for (String dominio : dominios.getDominios()) {
+
+                String regex = "^[a-zA-Z0-9._%+-]+@" + dominio.replace(".", "\\.") + "$";
+
+                // Validar usando el patrón
+                if (correo.matches(regex)) {
+                    validador=true;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean getValidacion(){
+        return validador;
+    }
+}

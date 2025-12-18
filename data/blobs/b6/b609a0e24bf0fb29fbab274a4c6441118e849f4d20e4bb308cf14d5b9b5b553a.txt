@@ -1,0 +1,17 @@
+package com.cardinalhealth.alertsandnotifications.response;
+
+import com.cardinalhealth.util.response.ErrorDetails;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@Builder
+public class AlertsResponse {
+
+    private String status;
+    private ErrorDetails error;
+    private Object data;
+
+}
