@@ -1,0 +1,55 @@
+package com.example.guerrillajpa.controller;
+
+import com.example.guerrillajpa.dto.UpdateUserNameRequest;
+import com.example.guerrillajpa.dto.request.CreateUserRequest;
+import com.example.guerrillajpa.dto.response.UserResponse;
+import com.example.guerrillajpa.service.BookService;
+import com.example.guerrillajpa.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/users")
+@RequiredArgsConstructor
+public class UserController {
+
+    private final UserService userService;
+    private final BookService bookService;
+
+    @PostMapping
+    public ResponseEntity<UserResponse> save(@RequestBody CreateUserRequest dto) {
+        UserResponse response = userService.save(dto.getUsername(), dto.getEmail(), dto.getPassword());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> findAll() {
+        List<UserResponse> response = userService.findAll();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> findOne(@PathVariable Long id) {
+        UserResponse response = userService.findById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> updateUserName(
+            @PathVariable Long id,
+            @RequestBody UpdateUserNameRequest dto
+    ) {
+        userService.updateUsername(id, dto.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        bookService.updateUserIdToNull(id);
+        userService.delete(id);
+        return ResponseEntity.ok().build();
+    }
+}

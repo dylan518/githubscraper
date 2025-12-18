@@ -1,0 +1,15 @@
+package Factory.DesignPattern1;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class MyIEDriver implements MyWebDriver {
+	private WebDriver driver;
+	@Override
+	public WebDriver setDriverProperty() {
+		System.setProperty("webdriver.ie.driver", null);
+		driver = new ChromeDriver();
+		System.out.println("IE Driver initialized successfully.");
+		return driver;
+	}
+}

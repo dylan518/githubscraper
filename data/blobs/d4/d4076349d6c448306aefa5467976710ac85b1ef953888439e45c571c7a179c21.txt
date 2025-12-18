@@ -1,0 +1,51 @@
+import java.util.Scanner;
+public class MulForExercise {
+	//дһmain
+	public static void main(String[] args) {
+		//1) ͳ 3 ɼÿ 5 ͬѧƽֺа༶ƽ[ѧĳɼӼ] 
+		//˼·
+		//Ϊ
+		//1ȼһ࣬5ѧĳɼ
+		//1.1  Scanner Ȼû
+		//1.2 õð༶ƽ֣һdouble sum Ѹð༶5ѧĳɼۼ
+		
+		//2ͳ3ࣨÿ5ѧƽ
+		//3а༶ƽ
+		//3.1 һdouble totalScore ۼѧĳɼ
+		//3.2 ѭtotalScore / (3 * 5)
+		
+		//4) ͳ༰ÿ 5 ͬѧ
+		//4.1  int passNum = 0; һѧɼ>=60 passNum++
+		//4.2 >=60 passNum++
+		//5ŻЧʡɶԡṹ
+		
+		// Scanner 
+		Scanner myScanner = new Scanner(System.in);
+		double totalScore = 0;//ۼѧĳɼ
+		int passNum = 0;//ۻ
+		int classNum = 3;
+		int stuNum = 5;
+		for (int i = 1; i <= classNum; i++) {
+
+			double sum = 0; //һ༶ܷ
+			for (int j = 1; j <= stuNum; j++) {
+				System.out.println("" + i + "ĵ" + j + "ѧĳɼ");
+				double score = myScanner.nextDouble();
+				//һѧɼ>=60 passNum++
+				if (score >= 60) {
+					passNum++;
+				}
+				sum += score;
+				System.out.println("ɼΪ" + score);
+			}
+			System.out.println("ƽΪ" + (sum / stuNum));
+			//sumۻtotalScore
+			totalScore += sum;
+		}
+		System.out.println("ܷ=" + totalScore + " ƽΪ" + (totalScore / (classNum*stuNum)));
+		System.out.println("ۼƼ=" + passNum);
+
+		
+
+	}
+}

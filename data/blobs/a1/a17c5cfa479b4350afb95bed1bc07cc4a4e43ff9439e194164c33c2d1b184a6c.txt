@@ -1,0 +1,303 @@
+/* * Copyright © 2022, Lumenore Inc. All rights reserved. *
+* This software is the confidential and proprietary information of *
+* Lumenore Inc. "Confidential Information".
+* You shall not disclose such Confidential Information and shall use it only in *
+* accordance with the terms of the intellectual property agreement *
+* you entered into with Lumenore Inc. *
+* THIS SOFTWARE IS INTENDED STRICTLY FOR USE BY Lumenore Inc. *
+* AND ITS PARENT AND/OR SUBSIDIARY COMPANIES. Lumenore *
+* MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF THE SOFTWARE, *
+* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF *
+* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. *
+* Lumenore SHALL NOT BE LIABLE FOR ANY DAMAGES SUFFERED BY ANY PARTY AS A RESULT *
+* OF USING, MODIFYING OR DISTRIBUTING THIS SOFTWARE OR ITS DERIVATIVES. *
+* */
+package com.lumenore.dao;
+
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.CriteriaUpdate;
+import javax.persistence.criteria.Join;
+import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Root;
+
+import org.hibernate.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lumenore.pojo.JwtSettingEntity;
+import com.lumenore.pojo.JwtSettingEntity_;
+import com.lumenore.pojo.LumUserLogin;
+import com.lumenore.pojo.NotificationEntity;
+import com.lumenore.pojo.NotificationEntity_;
+import com.lumenore.pojo.RoleEntity;
+import com.lumenore.pojo.RoleEntity_;
+import com.lumenore.pojo.TemporaryUserEntity;
+import com.lumenore.pojo.TemporaryUserEntity_;
+import com.lumenore.pojo.ThresholdEntity;
+import com.lumenore.pojo.ThresholdEntity_;
+import com.lumenore.pojo.UserEntity;
+import com.lumenore.pojo.UserEntity_;
+import com.lumenore.pojo.UserTourDetails;
+import com.lumenore.pojo.UserTourDetails_;
+import com.lumenore.pojo.UsersRolesEntity;
+import com.lumenore.pojo.UsersRolesEntity_;
+
+@Repository
+@Transactional
+@SuppressWarnings("squid:S1200")
+public class IdpUtilityRepo {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(IdpUtilityRepo.class);
+
+  public static final int THREE = 3;
+  public static final String EMAIL = "email";
+  public static final String USERID = "userId";
+
+  @PersistenceContext
+  private EntityManager entityManager;
+
+  public IdpUtilityRepo() {
+    super();
+  }
+
+  public UserTourDetails getUserTourDetails(Long orgId, Long userId) {
+
+    try {
+      CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+      CriteriaQuery<UserTourDetails> criteriaQuery = criteriaBuilder.createQuery(UserTourDetails.class);
+      Root<UserTourDetails> root = criteriaQuery.from(UserTourDetails.class);
+      criteriaQuery.select(root);
+
+      criteriaQuery.where(
+          criteriaBuilder.equal(root.get(UserTourDetails_.userId), userId),
+          criteriaBuilder.equal(root.get(UserTourDetails_.organizationId), orgId));
+
+      return entityManager.createQuery(criteriaQuery).getSingleResult();
+    } catch (RuntimeException e) {
+      String message = "Exception raised while fetching user tour details : " + e.getMessage();
+      LOGGER.error(message); 
+      return null;
+    }
+  }
+
+  public Long getAlertCount(long userId, long organizationId) {
+    try {
+      CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+      CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
+      Root<ThresholdEntity> root = criteriaQuery.from(ThresholdEntity.class);
+      criteriaQuery.select(criteriaBuilder.count(root));
+      criteriaQuery.where(
+          criteriaBuilder.equal(root.get(ThresholdEntity_.userId), userId),
+          criteriaBuilder.equal(root.get(ThresholdEntity_.organizationId), organizationId),
+          criteriaBuilder.equal(root.get(ThresholdEntity_.isActive), true));
+      return entityManager.createQuery(criteriaQuery).getSingleResult();
+    } catch (RuntimeException e) {
+      String message = "Exception raised while fetching expiration date : " + e.getMessage();
+      LOGGER.error(message); 
+      return null;
+    }
+  }
+
+  public Long getRoleCount(String role, Long organizationId) {
+
+    try {
+      CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+      CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
+      Root<UsersRolesEntity> root = criteriaQuery.from(UsersRolesEntity.class);
+      criteriaQuery.select(criteriaBuilder.count(root));
+      Join<UsersRolesEntity, RoleEntity> roleEntityFetch = root.join(UsersRolesEntity_.roles, JoinType.INNER);
+      criteriaQuery.where(
+          criteriaBuilder.equal(roleEntityFetch.get(RoleEntity_.roleName), role),
+          criteriaBuilder.equal(roleEntityFetch.get(RoleEntity_.organizationId), organizationId),
+          criteriaBuilder.equal(roleEntityFetch.get(RoleEntity_.isActive), true),
+          criteriaBuilder.equal(root.get(UsersRolesEntity_.isActive), true)
+          );
+      return entityManager.createQuery(criteriaQuery).getSingleResult();
+    } catch (RuntimeException e) {
+      String message = "Exception raised while fetching role count : " + e.getMessage();
+      LOGGER.error(message); 
+      return null;
+    }
+  }
+
+  public int getNotificationCount(Long userId, List<String> typeCount, Long organizationId) {
+
+    int count = 0;
+    int finalCount = 0;
+    if (typeCount != null && !typeCount.isEmpty()) {
+      for (int k = 0; k < typeCount.size(); k++) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
+        Root<NotificationEntity> root = criteriaQuery.from(NotificationEntity.class);
+        criteriaQuery.select(criteriaBuilder.count(root));
+        criteriaQuery.where(
+            criteriaBuilder.equal(root.get(NotificationEntity_.sendTo), userId),
+            criteriaBuilder.equal(root.get(NotificationEntity_.isReaded), false),
+            criteriaBuilder.equal(root.get(NotificationEntity_.organizationId), organizationId),
+            criteriaBuilder.equal(root.get(NotificationEntity_.type), typeCount.get(k)),
+            criteriaBuilder.equal(root.get(NotificationEntity_.isActive), true));
+
+        Long bcount = entityManager.createQuery(criteriaQuery).getSingleResult();
+        count = bcount.intValue();
+        if (count != 0) {
+          finalCount = finalCount + count;
+        }
+      }
+      return finalCount;
+    }
+    return 0;
+  }
+
+  public UserEntity getVideo(String email) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<UserEntity> userEntityCriteriaQuery = criteriaBuilder.createQuery(UserEntity.class);
+    Root<UserEntity> userEntityRoot = userEntityCriteriaQuery.from(UserEntity.class);
+    userEntityCriteriaQuery.multiselect(userEntityRoot.get(UserEntity_.showVideo));
+    userEntityCriteriaQuery.where(criteriaBuilder.equal(userEntityRoot.get(EMAIL), email));
+    List<UserEntity> userEntity = entityManager.createQuery(userEntityCriteriaQuery).getResultList();
+    if (userEntity != null && !userEntity.isEmpty()) {
+      return userEntity.get(0);
+    }
+    return null;
+  }
+
+  public void updateShowVideo(String email) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaUpdate<UserEntity> query = criteriaBuilder.createCriteriaUpdate(UserEntity.class);
+    Root<UserEntity> joinRoot = query.from(UserEntity.class);
+    query.set(UserEntity_.showVideo, false);
+    query.where(criteriaBuilder.equal(joinRoot.get(UserEntity_.email), email));
+    entityManager.createQuery(query).executeUpdate();
+  }
+
+  public void updateLastLogin(LumUserLogin lumUserLogin) {
+    Session session = entityManager.unwrap(Session.class);
+    session.saveOrUpdate(lumUserLogin);
+  }
+
+  public void updateUserEntity(Long userId) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaUpdate<UserEntity> query = criteriaBuilder.createCriteriaUpdate(UserEntity.class);
+    Root<UserEntity> joinRoot = query.from(UserEntity.class);
+    query.set(UserEntity_.attempts, 0);
+    query.set(UserEntity_.otpAttempts, 0);
+    query.where(criteriaBuilder.equal(joinRoot.get(UserEntity_.id), userId));
+    entityManager.createQuery(query).executeUpdate();
+  }
+
+  public TemporaryUserEntity getTempUserEntity(String email) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<TemporaryUserEntity> userEntityCriteriaQuery = criteriaBuilder.createQuery(TemporaryUserEntity.class);
+    Root<TemporaryUserEntity> userEntityRoot = userEntityCriteriaQuery.from(TemporaryUserEntity.class);
+    userEntityCriteriaQuery.select(userEntityRoot).distinct(true);
+    userEntityCriteriaQuery.where(criteriaBuilder.equal(userEntityRoot.get(EMAIL), email));
+    List<TemporaryUserEntity> tempUserEntity = entityManager.createQuery(userEntityCriteriaQuery).getResultList();
+    if (tempUserEntity != null && !tempUserEntity.isEmpty()) {
+      return tempUserEntity.get(0);
+    }
+    return null;
+  }
+
+  public String getUserParameter(long tempUserId) {
+    TemporaryUserEntity tempEntity = getTempUserParameters(tempUserId);
+    JSONObject jsonString = null;
+    try {
+      jsonString = new JSONObject();
+      jsonString.put("param", tempEntity.getParameters());
+      jsonString.put("dashboardId", tempEntity.getWorkboardId());
+    } catch (JSONException e) {
+      String message = "Exception raised while fetching user params : " + e.getMessage();
+      LOGGER.error(message); 
+    }
+    return jsonString.toString();
+  }
+
+  public TemporaryUserEntity getTempUserParameters(long tempUserId) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<TemporaryUserEntity> criteriaQuery = criteriaBuilder.createQuery(TemporaryUserEntity.class);
+    Root<TemporaryUserEntity> tempUserRoot = criteriaQuery.from(TemporaryUserEntity.class);
+    criteriaQuery.select(tempUserRoot);
+    criteriaQuery.where(criteriaBuilder.equal(tempUserRoot.get(TemporaryUserEntity_.id), tempUserId));
+    List<TemporaryUserEntity> temporaryUser = entityManager.createQuery(criteriaQuery).getResultList();
+    if (!temporaryUser.isEmpty()) {
+      for (TemporaryUserEntity entity : temporaryUser) {
+        if(entity != null) {
+          return entity;
+        }
+      }
+    }
+    return null;
+  }
+
+  public JwtSettingEntity getJwtSettingByOrganizationId(Long id) {
+
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<JwtSettingEntity> criteriaQuery = criteriaBuilder.createQuery(JwtSettingEntity.class);
+    Root<JwtSettingEntity> jwtSettingEntityRoot = criteriaQuery.from(JwtSettingEntity.class);
+    criteriaQuery.select(jwtSettingEntityRoot);
+    criteriaQuery.where(criteriaBuilder.equal(jwtSettingEntityRoot.get(JwtSettingEntity_.organizationId), id));
+    return entityManager.createQuery(criteriaQuery).getSingleResult();
+  }
+
+  public void updateSoftLimit(Long id) {
+
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaUpdate<UserEntity> query = criteriaBuilder.createCriteriaUpdate(UserEntity.class);
+    Root<UserEntity> joinRoot = query.from(UserEntity.class);
+    query.set(UserEntity_.softLimit, Integer.valueOf(THREE));
+
+    query.where(criteriaBuilder.equal(joinRoot.get(UserEntity_.id), id));
+    entityManager.createQuery(query).executeUpdate();
+  }
+
+  public Boolean getUserVerified(Long userId) {
+    try {
+      Query query = entityManager.createNativeQuery("select email_verified from lum_users_detail where user_id = :userId");
+      query.setParameter("userId", userId);
+
+      Object result = query.getSingleResult();
+
+      if (result == null) {
+        return true;
+      }
+      Boolean emailVerified = (Boolean) result;
+      return emailVerified != null && emailVerified;
+
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+
+  public Boolean getUserLoginCount(Long userId, Long count) {
+    try {
+      Query query = entityManager.createNativeQuery("Select count(last_login_date_time) as count from lum_user_login lul where user_id = :userId");
+      query.setParameter("userId", userId);
+
+      Object result = query.getSingleResult();
+
+      if (result == null) {
+        return false;
+      }
+      Long loginCount =  Long.valueOf(result.toString());
+
+      return  loginCount>count;
+
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+
+}

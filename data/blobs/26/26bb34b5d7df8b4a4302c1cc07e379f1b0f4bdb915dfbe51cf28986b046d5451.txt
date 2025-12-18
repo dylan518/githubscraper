@@ -1,0 +1,77 @@
+package com.desapex.spacemanager.resource;
+
+import com.desapex.spacemanager.domain.CreditsUsed;
+import com.desapex.spacemanager.repository.CreditsUsedRepository;
+import com.desapex.spacemanager.resource.dto.CreditUsedDto;
+import com.desapex.spacemanager.resource.transformer.CreditUsedDtoTransformer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Month;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/creditsUsed")
+public class CreditUsedResource {
+
+    private final CreditsUsedRepository creditsUsedRepository;
+    private final CreditUsedDtoTransformer creditUsedDtoTransformer;
+
+    @Autowired
+    public CreditUsedResource(CreditsUsedRepository creditsUsedRepository, CreditUsedDtoTransformer creditUsedDtoTransformer) {
+        this.creditsUsedRepository = creditsUsedRepository;
+        this.creditUsedDtoTransformer = creditUsedDtoTransformer;
+    }
+//    @GetMapping
+//    public ResponseEntity<Map<Integer, Map<String, List<CreditUsedDto>>>> getAllCreditsUsed() {
+//        List<CreditsUsed> creditsUsedList = creditsUsedRepository.findAll();
+//        Map<Integer, Map<String, List<CreditUsedDto>>> map = creditsUsedList.stream()
+//                .map(creditUsedDtoTransformer::transform)
+//                .collect(Collectors.groupingBy(
+//                        creditUsedDto -> creditUsedDto.date.getYear(),
+//                        Collectors.groupingBy(
+//                                creditUsedDto -> creditUsedDto.date.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+//                        )
+//                ));
+//
+//        // Get the years and months from the map and store them in variables
+//        List<Integer> years = new ArrayList<>(map.keySet());
+//        List<String> months = new ArrayList<>();
+//
+//        map.values().forEach(innerMap -> months.addAll(innerMap.keySet()));
+//
+//        // Now you have the years and months in the "years" and "months" variables respectively
+//
+//        return ResponseEntity.ok(map);
+//    }
+
+    @GetMapping
+    public ResponseEntity<Map<Month, List<CreditUsedDto>>> getAllCreditsUsed() {
+        List<CreditsUsed> creditsUsedList = creditsUsedRepository.findAll();
+        Map<Month, List<CreditUsedDto>> map = creditsUsedList.stream()
+                .map(creditUsedDtoTransformer::transform)
+                .collect(Collectors.groupingBy(creditUsedDto -> creditUsedDto.date.getMonth()));
+        return ResponseEntity.ok(map);
+
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CreditUsedDto> getCreditUsedById(@PathVariable Long id) {
+        CreditsUsed creditsUsed = creditsUsedRepository.findById(Double.valueOf(id)).orElse(null);
+        if (creditsUsed == null) {
+            return ResponseEntity.notFound().build();
+        }
+        CreditUsedDto creditUsedDto = creditUsedDtoTransformer.transform(creditsUsed);
+        return ResponseEntity.ok(creditUsedDto);
+    }
+
+    // Add more CRUD operations as needed (e.g., create, update, delete)
+
+}

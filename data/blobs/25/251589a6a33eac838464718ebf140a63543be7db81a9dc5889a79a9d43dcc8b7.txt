@@ -1,0 +1,60 @@
+package com.example.springboot.dto;
+
+import lombok.Getter;
+
+@Getter
+public class UsersDTO {
+    private String name;
+    private String lastname;
+    private String email;
+    private String phoneno;
+    private String role;
+    private String username;
+    private String password;
+
+
+    public UsersDTO(String name, String lastname, String email, String phoneno, String role ,String username, String password) {
+        this.name = name;
+        this.lastname = lastname;
+        this.email = email;
+        this.phoneno = phoneno;
+        this.role = role;
+        this.username = username;
+        this.password = password;
+    }
+
+    public UsersDTO() {
+
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setLastname(String lastname) {
+        this.lastname = lastname;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPhoneno(String phoneno) {
+        this.phoneno = phoneno;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+
+
+}

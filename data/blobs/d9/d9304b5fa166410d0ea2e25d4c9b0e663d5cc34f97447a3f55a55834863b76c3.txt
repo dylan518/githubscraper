@@ -1,0 +1,1242 @@
+package com.swipeair.Activitys;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
+import androidx.viewpager2.widget.ViewPager2;
+
+import com.squareup.picasso.Picasso;
+import com.swipeair.Adapters.TutorVideoAdapter;
+import com.swipeair.GetData.GetVideoListData;
+import com.swipeair.R;
+import com.swipeair.SetGet.SignupList;
+import com.swipeair.SetGet.TestSwipeGoList;
+import com.swipeair.SetGet.TestTopicList;
+import com.swipeair.SetGet.TutorSubVideoList;
+import com.swipeair.SetGet.TutorSubWebinarList;
+import com.swipeair.SetGet.TutorVideoList;
+import com.swipeair.SetGet.TutorWebinarList;
+import com.swipeair.Utils.ApiClient;
+import com.swipeair.Utils.ApiInterface;
+import com.swipeair.Utils.ConnectionDetector;
+import com.swipeair.Utils.ConstantSp;
+import com.swipeair.Utils.NavigationBaseActivity;
+import com.swipeair.Utils.RoundRectCornerImageView;
+import com.swipeair.Utils.ToastIntentClass;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class TutorVideoListActivity extends NavigationBaseActivity {
+
+    /*ImageView back;
+    TextView title;
+
+    RecyclerView recyclerView;
+    ArrayList<TutorVideoList> arrayList;
+    TutorVideoListAdapter adapter;
+
+    String[] titlesArray = {"Teaching College Engineering", "Teaching College Engineering", "Teaching College Engineering", "Teaching College Engineering", "Teaching College Engineering", "Teaching College Engineering"};
+    String[] priceArray = {"40", "40", "40", "40", "40", "40"};
+    String[] rateArray = {"4.8", "4.8", "4.8", "4.8", "4.8", "4.8"};
+    String[] rateCountArray = {"295", "295", "295", "295", "295", "295"};
+    String[] gradeArray = {"8th", "8th", "8th", "8th", "8th", "8th"};
+    String[] subjectArray = {"Maths", "Maths", "Maths", "Maths", "Maths", "Maths"};
+    String[] topicArray = {"Algebra", "Algebra", "Algebra", "Algebra", "Algebra", "Algebra"};
+    int[] videoCount = {20, 1, 1, 1, 1, 1};
+    int[] wishlistArray = {0, 0, 0, 0, 1, 0};
+    int[] imagesArray = {R.drawable.banner1, R.drawable.banner1, R.drawable.banner1, R.drawable.banner1, R.drawable.banner1, R.drawable.banner1};
+
+    SharedPreferences sp;
+    ApiInterface apiService;
+    ProgressDialog pd;*/
+
+    public static RecyclerView expanderRecyclerView;
+    ArrayList<TutorSubVideoList> arrayList;
+
+    String[] nameArray = {"Top Expert Videos", "", "Top Featured Videos", "Top I am Known Videos", "Top Swipe Air Pro Videos", "Top Rated Videos"};
+    int[] imageArray = {R.drawable.expert, R.drawable.expert, R.drawable.featured, R.drawable.i_am_known, R.drawable.pro, R.drawable.top_rated};
+
+    TextView gradeSubject;
+
+    RecyclerView topicRecyclerView;
+    ArrayList<TestTopicList> topicArrayList;
+    String[] topicArray = {"Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5", "Topic 6", "Topic 7", "Topic 8", "Topic 9", "Topic 10"};
+
+    RecyclerView swipeGoRecyclerView;
+    ArrayList<TestSwipeGoList> swipeGoArrayList;
+    String[] swipeGoNameArray = {"Testimonials", "Swipe Air Go", "Meet Our Experts"};
+    int[] swipeGoImageArray = {R.drawable.testimonial, R.drawable.ic_go_swipe, R.drawable.meet_expert};
+    boolean[] swipeGoSelectedArray = {true, false, false};
+
+    int[] bannerArray = {
+            R.drawable.subject_landing_banner,
+            R.drawable.activate_banner,
+            R.drawable.create_post_banner
+    };
+
+    //ImageSlider sliderView;
+    ViewPager2 viewPager;
+    LinearLayout dotIndicatorLayout;
+    ArrayList<SignupList> testimonialArrayList;
+
+    SharedPreferences sp;
+    ApiInterface apiService;
+    ProgressDialog pd;
+
+    ImageView menuIv, backIv;
+
+    String[] titleArray = {"Claim $50 Swipe Air Coins", "Swipe Air Go"};
+    String[] subTitleArray = {"", "Our Loyalty Program"};
+    String[] buttonArray = {"Explore Now", "Join For Free"};
+
+    FrameLayout notificationFrame, chatFrame;
+    ImageView notificationIv, chatIv;
+    TextView notificationCount, chatCount;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //setContentView(R.layout.activity_tutor_video_list);
+        FrameLayout frameLayout = (FrameLayout) findViewById(R.id.content_frame);
+        // inflate the custom activity layout
+        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View activityView = layoutInflater.inflate(R.layout.activity_tutor_video_list, null, false);
+        // add the custom layout of this activity to frame layout.
+        frameLayout.addView(activityView);
+        menuIv = findViewById(R.id.custom_toolbar_connect_profile_menu);
+        sp = getSharedPreferences(ConstantSp.PREF, MODE_PRIVATE);
+        if (!sp.getString(ConstantSp.USERIMAGEPATH, "").isEmpty()) {
+            Picasso.with(TutorVideoListActivity.this).load(sp.getString(ConstantSp.USERIMAGEPATH, "")).placeholder(R.drawable.user_round).into(menuIv);
+        }
+        openCustomDrawer(menuIv);
+
+        apiService = ApiClient.getClient().create(ApiInterface.class);
+
+        chatFrame = findViewById(R.id.custom_toolbar_connect_chat_frame);
+        chatIv = findViewById(R.id.custom_toolbar_connect_chat_iv);
+        chatCount = findViewById(R.id.custom_toolbar_connect_chat_count);
+
+        chatFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, ChatListTabActivity.class);
+            }
+        });
+
+        chatIv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, ChatListTabActivity.class);
+            }
+        });
+
+        chatCount.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, ChatListTabActivity.class);
+            }
+        });
+
+        notificationFrame = findViewById(R.id.custom_toolbar_connect_notification_frame);
+        notificationIv = findViewById(R.id.custom_toolbar_connect_notification_image);
+        notificationCount = findViewById(R.id.custom_toolbar_connect_notification_count);
+
+        notificationFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, NotificationActivity.class);
+            }
+        });
+
+        notificationIv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, NotificationActivity.class);
+            }
+        });
+
+        notificationCount.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ToastIntentClass(TutorVideoListActivity.this, NotificationActivity.class);
+            }
+        });
+
+        backIv = findViewById(R.id.tutor_video_list_back);
+        backIv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
+
+        viewPager = findViewById(R.id.viewPager);
+        dotIndicatorLayout = findViewById(R.id.dotIndicatorLayout);
+        testimonialArrayList = new ArrayList<>();
+        for (int i = 0; i < bannerArray.length; i++) {
+            SignupList list = new SignupList();
+            list.setImage(bannerArray[i]);
+            testimonialArrayList.add(list);
+        }
+        TestimonialAdapter adapter = new TestimonialAdapter(TutorVideoListActivity.this, testimonialArrayList);
+        viewPager.setAdapter(adapter);
+
+        // Set up dot indicators
+        setupDotIndicators();
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                updateDots(position);
+            }
+        });
+
+        // Optional: Auto-scroll
+        startAutoScroll();
+
+        /*sliderView = findViewById(R.id.tutor_video_list_swipeair_imageSlider);
+        testimonialArrayList = new ArrayList<>();
+        for (int i = 0; i < bannerArray.length; i++) {
+            SignupList list = new SignupList();
+            list.setImage(bannerArray[i]);
+            testimonialArrayList.add(list);
+        }
+        sliderView.setSliderAdapter(new TestimonialAdapter(TutorVideoListActivity.this, testimonialArrayList));
+        sliderView.setIndicatorAnimation(IndicatorAnimationType.WORM); //set indicator animation by using IndicatorAnimationType. :WORM or THIN_WORM or COLOR or DROP or FILL or NONE or SCALE or SCALE_DOWN or SLIDE and SWAP!!
+        sliderView.setSliderTransformAnimation(SliderAnimations.SIMPLETRANSFORMATION);
+        sliderView.setAutoCycleDirection(SliderView.AUTO_CYCLE_DIRECTION_BACK_AND_FORTH);
+        sliderView.setIndicatorSelectedColor(getResources().getColor(R.color.purple_2));
+        sliderView.setIndicatorUnselectedColor(getResources().getColor(R.color.gray));
+        sliderView.setScrollTimeInSec(5); //set scroll delay in seconds :
+        sliderView.startAutoCycle();*/
+
+        expanderRecyclerView = findViewById(R.id.tutor_video_list_recycler);
+
+        gradeSubject = findViewById(R.id.tutor_video_list_grade_subject);
+        //gradeSubject.setText(getResources().getString(R.string.grade1) + " " + sp.getString(ConstantSp.GRADENAME, "") + ", " + sp.getString(ConstantSp.SUBJECTNAME, "") + " " + getResources().getString(R.string.videos));
+        gradeSubject.setText(sp.getString(ConstantSp.GRADENAME, "") + ", " + sp.getString(ConstantSp.SUBJECTNAME, "") + " " + getResources().getString(R.string.videos));
+
+        topicRecyclerView = findViewById(R.id.tutor_video_list_topic_recycler);
+        topicRecyclerView.setLayoutManager(new StaggeredGridLayoutManager(1, StaggeredGridLayoutManager.HORIZONTAL));
+        topicRecyclerView.setItemAnimator(new DefaultItemAnimator());
+        topicRecyclerView.setNestedScrollingEnabled(false);
+
+        topicArrayList = new ArrayList<>();
+        for (int i = 0; i < topicArray.length; i++) {
+            TestTopicList list = new TestTopicList();
+            list.setName(topicArray[i]);
+            topicArrayList.add(list);
+        }
+        TestTopicAdapter testTopicAdapter = new TestTopicAdapter(TutorVideoListActivity.this, topicArrayList);
+        topicRecyclerView.setAdapter(testTopicAdapter);
+
+        swipeGoRecyclerView = findViewById(R.id.tutor_video_list_swipeair_recycler);
+        swipeGoRecyclerView.setLayoutManager(new StaggeredGridLayoutManager(1, StaggeredGridLayoutManager.HORIZONTAL));
+        swipeGoRecyclerView.setItemAnimator(new DefaultItemAnimator());
+        swipeGoRecyclerView.setNestedScrollingEnabled(false);
+
+        swipeGoArrayList = new ArrayList<>();
+        for (int i = 0; i < swipeGoNameArray.length; i++) {
+            TestSwipeGoList list = new TestSwipeGoList();
+            list.setName(swipeGoNameArray[i]);
+            list.setImage(swipeGoImageArray[i]);
+            list.setSeleced(swipeGoSelectedArray[i]);
+            swipeGoArrayList.add(list);
+        }
+        TestSwipeGoAdapter testSwipeAdapter = new TestSwipeGoAdapter(TutorVideoListActivity.this, swipeGoArrayList);
+        swipeGoRecyclerView.setAdapter(testSwipeAdapter);
+
+        if (new ConnectionDetector(TutorVideoListActivity.this).isConnectingToInternet()) {
+            pd = new ProgressDialog(TutorVideoListActivity.this);
+            pd.setMessage("Please Wait...");
+            pd.setCancelable(false);
+            pd.show();
+            getTutorList();
+        } else {
+            new ConnectionDetector(TutorVideoListActivity.this).connectiondetect();
+        }
+
+    }
+
+    private void setupDotIndicators() {
+        for (int i = 0; i < testimonialArrayList.size(); i++) {
+            TextView dot = new TextView(this);
+            dot.setText("●");
+            dot.setTextSize(18);
+            dot.setTextColor(i == 0 ? getResources().getColor(R.color.purple_2) : getResources().getColor(R.color.gray));
+            dot.setPadding(8, 0, 8, 0);
+            dotIndicatorLayout.addView(dot);
+        }
+    }
+
+    private void updateDots(int position) {
+        for (int i = 0; i < dotIndicatorLayout.getChildCount(); i++) {
+            TextView dot = (TextView) dotIndicatorLayout.getChildAt(i);
+            dot.setTextColor(i == position ? getResources().getColor(R.color.purple_2) : getResources().getColor(R.color.gray));
+        }
+    }
+
+    private void startAutoScroll() {
+        final Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            int currentIndex = 0;
+
+            @Override
+            public void run() {
+                viewPager.setCurrentItem(currentIndex++, true);
+                if (currentIndex == testimonialArrayList.size()) {
+                    currentIndex = 0;
+                }
+                handler.postDelayed(this, 3000); // Change slide every 3 seconds
+            }
+        }, 3000);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up
+    }
+
+    private void getTutorList() {
+        Log.d("RESPONSE", sp.getString(ConstantSp.GRADEID, "") + "\n" + sp.getString(ConstantSp.SUBJECTID, "") + "\n" + sp.getString(ConstantSp.USERID, ""));
+        Call<GetVideoListData> call = apiService.getVideoListData(Integer.parseInt(sp.getString(ConstantSp.GRADEID, "")), Integer.parseInt(sp.getString(ConstantSp.SUBJECTID, "")), Integer.parseInt(sp.getString(ConstantSp.USERID, "")), 1, 10);
+        //Call<GetVideoListData> call = apiService.GetVideoListData(Integer.parseInt("2"), Integer.parseInt("2"), Integer.parseInt(sp.getString(ConstantSp.USERID, "")));
+        call.enqueue(new Callback<GetVideoListData>() {
+            @Override
+            public void onResponse(Call<GetVideoListData> call, Response<GetVideoListData> response) {
+                pd.dismiss();
+                if (response.code() == 200) {
+                    if (response.body().isSuccess) {
+                        GetVideoListData testData = response.body();
+                        /*arrayList = new ArrayList<>();
+                        ArrayList<ArrayList<TutorVideoList>> childListHolder = new ArrayList<>();
+                        for (int i = 0; i < nameArray.length; i++) {
+                            TutorSubVideoList list = new TutorSubVideoList();
+                            list.setName(nameArray[i]);
+                            list.setIcon(imageArray[i]);
+                            if (i == 0) {
+                                list.setChildCount(String.valueOf(testData.data.isExpert.size()));
+                                if (testData.data.isExpert.size() <= 0) {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);
+                                } else {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isExpert.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(0);
+                                        cList1.setTutorId(String.valueOf(testData.data.isExpert.get(j).tutorId));
+                                        cList1.setId(String.valueOf(testData.data.isExpert.get(j).id));
+                                        cList1.setTitle(testData.data.isExpert.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isExpert.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isExpert.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isExpert.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isExpert.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isExpert.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isExpert.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isExpert.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isExpert.get(j).userProfileImagePath);
+                                        cList1.setProfileImage(testData.data.isExpert.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isExpert.get(j).isSingleVideo);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                }
+                            }
+                            if (i == 1) {
+                                list.setChildCount(String.valueOf(testData.data.isFeatured.size()));
+                                if (testData.data.isFeatured.size() <= 0) {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);
+                                } else {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isFeatured.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(1);
+                                        cList1.setId(String.valueOf(testData.data.isFeatured.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isFeatured.get(j).tutorId));
+                                        cList1.setTitle(testData.data.isFeatured.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isFeatured.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isFeatured.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isFeatured.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isFeatured.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isFeatured.get(j).userProfileImagePath);
+                                        cList1.setProfileImage(testData.data.isFeatured.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isFeatured.get(j).isSingleVideo);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                }
+                            }
+                            if (i == 2) {
+                                list.setChildCount(String.valueOf(testData.data.isKnown.size()));
+                                if (testData.data.isKnown.size() <= 0) {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);
+                                } else {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isKnown.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(2);
+                                        cList1.setId(String.valueOf(testData.data.isKnown.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isKnown.get(j).tutorId));
+                                        cList1.setTitle(testData.data.isKnown.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isKnown.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isKnown.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isKnown.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isKnown.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isKnown.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isKnown.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isKnown.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isKnown.get(j).userProfileImagePath);
+                                        cList1.setProfileImage(testData.data.isKnown.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isKnown.get(j).isSingleVideo);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                }
+                            }
+                            if (i == 3) {
+                                list.setChildCount(String.valueOf(testData.data.isPro.size()));
+                                if (testData.data.isPro.size() <= 0) {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);
+                                } else {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isPro.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(3);
+                                        cList1.setId(String.valueOf(testData.data.isPro.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isPro.get(j).tutorId));
+                                        cList1.setTitle(testData.data.isPro.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isPro.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isPro.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isPro.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isPro.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isPro.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isPro.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isPro.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isPro.get(j).userProfileImagePath);
+                                        cList1.setProfileImage(testData.data.isPro.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isPro.get(j).isSingleVideo);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                }
+                            }
+                            if (i == 4) {
+                                list.setChildCount(String.valueOf(testData.data.isRating.size()));
+                                if (testData.data.isRating.size() <= 0) {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);
+                                } else {
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isRating.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(4);
+                                        cList1.setTutorId(String.valueOf(testData.data.isRating.get(j).tutorId));
+                                        cList1.setId(String.valueOf(testData.data.isRating.get(j).id));
+                                        cList1.setTitle(testData.data.isRating.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isRating.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isRating.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isRating.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isRating.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isRating.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isRating.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isRating.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isRating.get(j).userProfileImagePath);
+                                        cList1.setProfileImage(testData.data.isRating.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isRating.get(j).isSingleVideo);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                }
+                            }
+                            arrayList.add(list);*/
+
+                        arrayList = new ArrayList<>();
+                        ArrayList<ArrayList<TutorVideoList>> childListHolder = new ArrayList<>();
+                        for (int i = 0; i < nameArray.length; i++) {
+                            if (i == 0) {
+                                if (testData.data.isExpert.size() <= 0) {
+                                    /*ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);*/
+                                } else {
+                                    TutorSubVideoList list = new TutorSubVideoList();
+                                    list.setName(nameArray[i]);
+                                    list.setIcon(imageArray[i]);
+                                    list.setChildCount(String.valueOf(testData.data.isExpert.size()));
+
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isExpert.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(0);
+                                        cList1.setTutorId(String.valueOf(testData.data.isExpert.get(j).tutorId));
+                                        cList1.setTutorName(testData.data.isExpert.get(j).tutorName);
+                                        cList1.setId(String.valueOf(testData.data.isExpert.get(j).id));
+                                        cList1.setTitle(testData.data.isExpert.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isExpert.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isExpert.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isExpert.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isExpert.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isExpert.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isExpert.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isExpert.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isExpert.get(j).thumbnailPath);
+                                        cList1.setProfileImage(testData.data.isExpert.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isExpert.get(j).isSingleVideo);
+                                        cList1.setIsPurchased(testData.data.isExpert.get(j).isPuchased);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                    arrayList.add(list);
+                                }
+                            }
+                            if (i == 1) {
+                                TutorSubVideoList list = new TutorSubVideoList();
+                                list.setName("");
+                                list.setIcon(0);
+                                list.setChildCount(String.valueOf(titleArray.length));
+
+                                ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                for (int j = 0; j < titleArray.length; j++) {
+                                    TutorVideoList cList1 = new TutorVideoList();
+                                    cList1.setId(String.valueOf(j));
+                                    cList1.setTitle(titleArray[j]);
+                                    cList1.setTopic(subTitleArray[j]);
+                                    cList1.setPrice(buttonArray[j]);
+                                    catChildLists.add(cList1);
+                                }
+                                childListHolder.add(catChildLists);
+                                arrayList.add(list);
+                            }
+                            if (i == 2) {
+                                if (testData.data.isFeatured.size() <= 0) {
+                                    /*ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);*/
+                                } else {
+                                    TutorSubVideoList list = new TutorSubVideoList();
+                                    list.setName(nameArray[i]);
+                                    list.setIcon(imageArray[i]);
+                                    list.setChildCount(String.valueOf(testData.data.isFeatured.size()));
+
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isFeatured.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(1);
+                                        cList1.setId(String.valueOf(testData.data.isFeatured.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isFeatured.get(j).tutorId));
+                                        cList1.setTutorName(testData.data.isFeatured.get(j).tutorName);
+                                        cList1.setTitle(testData.data.isFeatured.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isFeatured.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isFeatured.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isFeatured.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isFeatured.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isFeatured.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isFeatured.get(j).thumbnailPath);
+                                        cList1.setProfileImage(testData.data.isFeatured.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isFeatured.get(j).isSingleVideo);
+                                        cList1.setIsPurchased(testData.data.isFeatured.get(j).isPuchased);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                    arrayList.add(list);
+                                }
+                            }
+                            if (i == 3) {
+                                if (testData.data.isKnown.size() <= 0) {
+                                    /*ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);*/
+                                } else {
+                                    TutorSubVideoList list = new TutorSubVideoList();
+                                    list.setName(nameArray[i]);
+                                    list.setIcon(imageArray[i]);
+                                    list.setChildCount(String.valueOf(testData.data.isKnown.size()));
+
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isKnown.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(2);
+                                        cList1.setId(String.valueOf(testData.data.isKnown.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isKnown.get(j).tutorId));
+                                        cList1.setTutorName(testData.data.isKnown.get(j).tutorName);
+                                        cList1.setTitle(testData.data.isKnown.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isKnown.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isKnown.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isKnown.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isKnown.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isKnown.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isKnown.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isKnown.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isKnown.get(j).thumbnailPath);
+                                        cList1.setProfileImage(testData.data.isKnown.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isKnown.get(j).isSingleVideo);
+                                        cList1.setIsPurchased(testData.data.isKnown.get(j).isPuchased);
+
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                    arrayList.add(list);
+                                }
+                            }
+                            if (i == 4) {
+                                if (testData.data.isPro.size() <= 0) {
+                                    /*ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);*/
+                                } else {
+                                    TutorSubVideoList list = new TutorSubVideoList();
+                                    list.setName(nameArray[i]);
+                                    list.setIcon(imageArray[i]);
+                                    list.setChildCount(String.valueOf(testData.data.isPro.size()));
+
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isPro.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(3);
+                                        cList1.setId(String.valueOf(testData.data.isPro.get(j).id));
+                                        cList1.setTutorId(String.valueOf(testData.data.isPro.get(j).tutorId));
+                                        cList1.setTutorName(testData.data.isPro.get(j).tutorName);
+                                        cList1.setTitle(testData.data.isPro.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isPro.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isPro.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isPro.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isPro.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isPro.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isPro.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isPro.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isPro.get(j).thumbnailPath);
+                                        cList1.setProfileImage(testData.data.isPro.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isPro.get(j).isSingleVideo);
+                                        cList1.setIsPurchased(testData.data.isPro.get(j).isPuchased);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                    arrayList.add(list);
+                                }
+                            }
+                            if (i == 5) {
+                                if (testData.data.isRating.size() <= 0) {
+                                    /*ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    childListHolder.add(catChildLists);*/
+                                } else {
+                                    TutorSubVideoList list = new TutorSubVideoList();
+                                    list.setName(nameArray[i]);
+                                    list.setIcon(imageArray[i]);
+                                    list.setChildCount(String.valueOf(testData.data.isRating.size()));
+
+                                    ArrayList<TutorVideoList> catChildLists = new ArrayList<>();
+                                    for (int j = 0; j < testData.data.isRating.size(); j++) {
+                                        TutorVideoList cList1 = new TutorVideoList();
+                                        cList1.setExpertImageFlag(4);
+                                        cList1.setTutorId(String.valueOf(testData.data.isRating.get(j).tutorId));
+                                        cList1.setTutorName(testData.data.isRating.get(j).tutorName);
+                                        cList1.setId(String.valueOf(testData.data.isRating.get(j).id));
+                                        cList1.setTitle(testData.data.isRating.get(j).title);
+                                        cList1.setRating(String.valueOf(testData.data.isRating.get(j).averageRating));
+                                        cList1.setTopic(testData.data.isRating.get(j).topic);
+                                        cList1.setPrice(String.valueOf(testData.data.isRating.get(j).rate));
+                                        cList1.setPriceGo("70");
+                                        cList1.setCoin("50");
+                                        cList1.setCoinGo("100");
+                                        cList1.setPay("38");
+                                        cList1.setCredit("2");
+                                        cList1.setCoins("400");
+                                        cList1.setPerson(String.valueOf(testData.data.isRating.get(j).visitorTracking.viewed));
+                                        cList1.setJoin(String.valueOf(testData.data.isRating.get(j).visitorTracking.liked));
+                                        cList1.setShare(String.valueOf(testData.data.isRating.get(j).visitorTracking.shared));
+                                        cList1.setVideoCount(String.valueOf(testData.data.isRating.get(j).courseVideoCount));
+                                        cList1.setFreeVideoCount("1st");
+                                        cList1.setWishlistFlag(0);
+                                        cList1.setImage(testData.data.isRating.get(j).thumbnailPath);
+                                        cList1.setProfileImage(testData.data.isRating.get(j).userProfileImagePath);
+                                        cList1.setSingleVideo(testData.data.isRating.get(j).isSingleVideo);
+                                        cList1.setIsPurchased(testData.data.isRating.get(j).isPuchased);
+                                        catChildLists.add(cList1);
+                                    }
+                                    childListHolder.add(catChildLists);
+                                    arrayList.add(list);
+                                }
+                            }
+                            //arrayList.add(list);
+
+                        }
+                        TutorVideoAdapter expandableCategoryRecyclerViewAdapter =
+                                new TutorVideoAdapter(TutorVideoListActivity.this, arrayList,
+                                        childListHolder, expanderRecyclerView);
+                        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(TutorVideoListActivity.this);
+                        expanderRecyclerView.setLayoutManager(linearLayoutManager);
+                        expanderRecyclerView.setNestedScrollingEnabled(false);
+                        expanderRecyclerView.setAdapter(expandableCategoryRecyclerViewAdapter);
+                        /*List<GetTestTutorListData.GetTestTutorListResponse> data = response.body().data;
+                        arrayList = new ArrayList<>();
+                        for (int i = 0; i < data.size(); i++) {
+                            TestTutorList list = new TestTutorList();
+                            list.setId(data.get(i).id);
+                            list.setImage(data.get(i).tutorImage);
+                            list.setTitle(data.get(i).providerName);
+                            list.setFlag(data.get(i).countryImage);
+                            list.setGradeId(data.get(i).gradeId);
+                            list.setGrade(data.get(i).gradeName);
+                            list.setSubjectId(data.get(i).subjectId);
+                            list.setSubject(data.get(i).subjectName);
+                            list.setTestName(data.get(i).title);
+                            list.setTestPrice(data.get(i).price);
+                            list.setTestQue(data.get(i).noOfQuestions);
+                            list.setTestLevel(data.get(i).expertiseLevel);
+                            list.setTestFreeQue(data.get(i).noOfFreeQuestion);
+                            list.setTestDesc(data.get(i).description);
+                            arrayList.add(list);
+                        }
+                        adapter = new TestTutorListAdapter(TutorVideoListActivity.this, arrayList);
+                        recyclerView.setAdapter(adapter);*/
+                    } else {
+                        new ToastIntentClass(TutorVideoListActivity.this, String.valueOf(response.body().notification));
+                    }
+                } else {
+                    new ToastIntentClass(TutorVideoListActivity.this, getResources().getString(R.string.server_error) + response.code());
+                    /*if (new ConnectionDetector(TutorVideoListActivity.this).isConnectingToInternet()) {
+                        pd = new ProgressDialog(TutorVideoListActivity.this);
+                        pd.setMessage("Please Wait...");
+                        pd.setCancelable(false);
+                        pd.show();
+                        getTutorList();
+                    } else {
+                        new ConnectionDetector(TutorVideoListActivity.this).connectiondetect();
+                    }*/
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GetVideoListData> call, Throwable t) {
+                pd.dismiss();
+                Log.d("RESPONSE", t.getMessage());
+                new ToastIntentClass(TutorVideoListActivity.this, t.getMessage());
+            }
+        });
+    }
+
+    private class TestTopicAdapter extends RecyclerView.Adapter<TestTopicAdapter.MyHolder> {
+
+        Context context;
+        ArrayList<TestTopicList> topicArrayList;
+
+        public TestTopicAdapter(TutorVideoListActivity testTutorListActivity, ArrayList<TestTopicList> topicArrayList) {
+            this.context = testTutorListActivity;
+            this.topicArrayList = topicArrayList;
+        }
+
+        @NonNull
+        @Override
+        public MyHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.custom_test_topic, parent, false);
+            return new MyHolder(view);
+        }
+
+        public class MyHolder extends RecyclerView.ViewHolder {
+            TextView name;
+
+            public MyHolder(@NonNull View itemView) {
+                super(itemView);
+                name = itemView.findViewById(R.id.custom_test_topic_name);
+            }
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull MyHolder holder, int position) {
+            holder.name.setText(topicArrayList.get(position).getName());
+        }
+
+        @Override
+        public int getItemCount() {
+            return topicArrayList.size();
+        }
+    }
+
+    private class TestSwipeGoAdapter extends RecyclerView.Adapter<TestSwipeGoAdapter.MyHolder> {
+
+        Context context;
+        ArrayList<TestSwipeGoList> testSwipeGoLists;
+
+        public TestSwipeGoAdapter(TutorVideoListActivity testTutorListActivity, ArrayList<TestSwipeGoList> swipeGoArrayList) {
+            this.context = testTutorListActivity;
+            this.testSwipeGoLists = swipeGoArrayList;
+        }
+
+        @NonNull
+        @Override
+        public MyHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.custom_test_tutor_swipego, parent, false);
+            return new MyHolder(view);
+        }
+
+        public class MyHolder extends RecyclerView.ViewHolder {
+
+            ImageView icon;
+            TextView name;
+            LinearLayout linearLayout;
+
+            public MyHolder(@NonNull View itemView) {
+                super(itemView);
+                icon = itemView.findViewById(R.id.custom_test_tutor_swipego_icon);
+                name = itemView.findViewById(R.id.custom_test_tutor_swipego_name);
+                linearLayout = itemView.findViewById(R.id.custom_test_tutor_swipego_line);
+            }
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull MyHolder holder, int position) {
+            holder.name.setText(testSwipeGoLists.get(position).getName());
+            holder.icon.setImageResource(testSwipeGoLists.get(position).getImage());
+
+            if (testSwipeGoLists.get(position).isSeleced()) {
+                holder.linearLayout.setBackgroundColor(getResources().getColor(R.color.orange));
+                holder.name.setTextColor(getResources().getColor(R.color.orange));
+            } else {
+                holder.linearLayout.setBackgroundColor(getResources().getColor(R.color.gray));
+                holder.name.setTextColor(getResources().getColor(R.color.gray));
+            }
+
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int i = 0; i < testSwipeGoLists.size(); i++) {
+                        TestSwipeGoList list = new TestSwipeGoList();
+                        list.setName(testSwipeGoLists.get(i).getName());
+                        list.setImage(testSwipeGoLists.get(i).getImage());
+                        if (i == position) {
+                            list.setSeleced(true);
+                        } else {
+                            list.setSeleced(false);
+                        }
+                        testSwipeGoLists.set(i, list);
+                    }
+                    notifyDataSetChanged();
+                }
+            });
+
+        }
+
+        @Override
+        public int getItemCount() {
+            return testSwipeGoLists.size();
+        }
+    }
+
+    /*private class TestimonialAdapter extends
+            SliderViewAdapter<TestimonialAdapter.SliderAdapterVH> {
+
+        private Context context;
+        private List<SignupList> mSliderItems;
+
+        public TestimonialAdapter(Context introductionActivity, ArrayList<SignupList> arrayList) {
+            this.context = introductionActivity;
+            this.mSliderItems = arrayList;
+        }
+
+        public void renewItems(List<SignupList> sliderItems) {
+            this.mSliderItems = sliderItems;
+            notifyDataSetChanged();
+        }
+
+        public void deleteItem(int position) {
+            this.mSliderItems.remove(position);
+            notifyDataSetChanged();
+        }
+
+        public void addItem(SignupList sliderItem) {
+            this.mSliderItems.add(sliderItem);
+            notifyDataSetChanged();
+        }
+
+        @Override
+        public SliderAdapterVH onCreateViewHolder(ViewGroup parent) {
+            View inflate = LayoutInflater.from(parent.getContext()).inflate(R.layout.custom_test_testimonial, null);
+            return new SliderAdapterVH(inflate);
+        }
+
+        @Override
+        public void onBindViewHolder(SliderAdapterVH viewHolder, final int position) {
+            SignupList sliderItem = mSliderItems.get(position);
+            viewHolder.banner.setImageResource(sliderItem.getImage());
+        }
+
+        @Override
+        public int getCount() {
+            //slider view count could be dynamic size
+            return mSliderItems.size();
+        }
+
+        class SliderAdapterVH extends ViewHolder {
+
+            View itemView;
+            RoundRectCornerImageView banner;
+
+            public SliderAdapterVH(View itemView) {
+                super(itemView);
+                banner = itemView.findViewById(R.id.custom_test_testimonial_image);
+                this.itemView = itemView;
+            }
+        }
+
+    }*/
+    private class TestimonialAdapter extends RecyclerView.Adapter<TestimonialAdapter.SliderAdapterVH> {
+
+        private Context context;
+        private List<SignupList> mSliderItems;
+
+        public TestimonialAdapter(Context introductionActivity, ArrayList<SignupList> arrayList) {
+            this.context = introductionActivity;
+            this.mSliderItems = arrayList;
+        }
+
+
+        @Override
+        public SliderAdapterVH onCreateViewHolder(ViewGroup parent, int viewType) {
+            View inflate = LayoutInflater.from(parent.getContext()).inflate(R.layout.custom_test_testimonial, parent, false);
+            return new SliderAdapterVH(inflate);
+        }
+
+        @Override
+        public void onBindViewHolder(SliderAdapterVH viewHolder, final int position) {
+            SignupList sliderItem = mSliderItems.get(position);
+            viewHolder.banner.setImageResource(sliderItem.getImage());
+        }
+
+        @Override
+        public int getItemCount() {
+            //slider view count could be dynamic size
+            return mSliderItems.size();
+        }
+
+        class SliderAdapterVH extends RecyclerView.ViewHolder {
+
+            View itemView;
+            RoundRectCornerImageView banner;
+
+            public SliderAdapterVH(View itemView) {
+                super(itemView);
+                banner = itemView.findViewById(R.id.custom_test_testimonial_image);
+                this.itemView = itemView;
+            }
+        }
+
+    }
+}
+
+        /*sp = getSharedPreferences(ConstantSp.PREF, MODE_PRIVATE);
+        apiService = ApiClient.getClient().create(ApiInterface.class);
+
+        title = findViewById(R.id.tutor_video_list_title);
+        title.setText(sp.getString(ConstantSp.SUBJECTNAME, "") + " Videos");
+
+        back = findViewById(R.id.tutor_video_list_back);
+
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
+
+        recyclerView = findViewById(R.id.tutor_video_list_recyclerview);
+        recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+
+        *//*arrayList = new ArrayList<>();
+        for (int i = 0; i < imagesArray.length; i++) {
+            TutorVideoList list = new TutorVideoList();
+            list.setTitle(titlesArray[i]);
+            list.setPrice(priceArray[i]);
+            list.setRate(rateArray[i]);
+            list.setRateCount(rateCountArray[i]);
+            list.setGrade(gradeArray[i]);
+            list.setSubject(subjectArray[i]);
+            list.setTopic(topicArray[i]);
+            list.setImage(imagesArray[i]);
+            list.setVideoCount(videoCount[i]);
+            list.setWishlistFlag(wishlistArray[i]);
+            arrayList.add(list);
+        }
+        adapter = new TutorVideoListAdapter(TutorVideoListActivity.this, arrayList);
+        recyclerView.setAdapter(adapter);*//*
+        if (new ConnectionDetector(TutorVideoListActivity.this).isConnectingToInternet()) {
+            pd = new ProgressDialog(TutorVideoListActivity.this);
+            pd.setMessage("Please Wait...");
+            pd.setCancelable(false);
+            pd.show();
+            getData();
+        } else {
+            new ConnectionDetector(TutorVideoListActivity.this).connectiondetect();
+        }
+    }
+
+    private void getData() {
+        Log.d("RESPONSE", Integer.parseInt(sp.getString(ConstantSp.GRADEID, "")) + "\n" + Integer.parseInt(sp.getString(ConstantSp.SUBJECTID, "")) + "\n" + Integer.parseInt(sp.getString(ConstantSp.USERID, "")));
+        Call<GetVideoData> call = apiService.getVideoData(Integer.parseInt(sp.getString(ConstantSp.GRADEID, "")), Integer.parseInt(sp.getString(ConstantSp.SUBJECTID, "")), Integer.parseInt(sp.getString(ConstantSp.USERID, "")));
+        call.enqueue(new Callback<GetVideoData>() {
+            @Override
+            public void onResponse(Call<GetVideoData> call, Response<GetVideoData> response) {
+                pd.dismiss();
+                if (response.code() == 200) {
+                    if (response.body().code == 200) {
+                        GetVideoData data = response.body();
+                        arrayList = new ArrayList<>();
+                        for (int i = 0; i < data.response.size(); i++) {
+                            TutorVideoList list = new TutorVideoList();
+                            list.setId(String.valueOf(data.response.get(i).id));
+                            //list.setTitle(data.response.get(i).title);
+                            list.setTitle(data.response.get(i).videoTitle);
+                            list.setPrice(String.valueOf(data.response.get(i).rate));
+                            list.setRate(String.valueOf(data.response.get(i).rating));
+                            list.setRateCount(String.valueOf(data.response.get(i).userCount));
+                            list.setGrade(sp.getString(ConstantSp.GRADENAME, ""));
+                            list.setSubject(data.response.get(i).subjectName);
+                            list.setTopic(data.response.get(i).topic);
+                            list.setImage(data.response.get(i).thumbnail);
+                            list.setVideoCount(data.response.get(i).noOfVideo);
+                            list.setWishlistFlag(0);
+                            arrayList.add(list);
+                        }
+                        adapter = new TutorVideoListAdapter(TutorVideoListActivity.this, arrayList);
+                        recyclerView.setAdapter(adapter);
+                    }
+                } else {
+                    new ToastIntentClass(TutorVideoListActivity.this, getResources().getString(R.string.server_error) + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GetVideoData> call, Throwable t) {
+                pd.dismiss();
+                new ToastIntentClass(TutorVideoListActivity.this, t.getMessage());
+            }
+        });
+    }
+
+    private class TutorVideoListAdapter extends RecyclerView.Adapter<TutorVideoListAdapter.MyHolder> {
+
+        Context context;
+        ArrayList<TutorVideoList> arrayList;
+
+        public TutorVideoListAdapter(TutorVideoListActivity tutorVideoListActivity, ArrayList<TutorVideoList> arrayList) {
+            this.context = tutorVideoListActivity;
+            this.arrayList = arrayList;
+        }
+
+        @NonNull
+        @Override
+        public TutorVideoListAdapter.MyHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.custom_tutor_video_list, parent, false);
+            return new TutorVideoListAdapter.MyHolder(view);
+        }
+
+        public class MyHolder extends RecyclerView.ViewHolder {
+
+            TextView title, price, rate, rateCount, grade, subject, topic, videoCount;
+            RatingBar ratingBar;
+            RoundRectCornerImageView imageView;
+            ImageView wishlistIv, wishlistFillIv, playIv;
+            FloatingActionButton shareIv;
+
+            public MyHolder(@NonNull View itemView) {
+                super(itemView);
+                title = itemView.findViewById(R.id.custom_tutor_video_list_title);
+                price = itemView.findViewById(R.id.custom_tutor_video_list_price);
+                rate = itemView.findViewById(R.id.custom_tutor_video_list_rate);
+                rateCount = itemView.findViewById(R.id.custom_tutor_video_list_rate_count);
+                grade = itemView.findViewById(R.id.custom_tutor_video_list_grade);
+                subject = itemView.findViewById(R.id.custom_tutor_video_list_subject);
+                topic = itemView.findViewById(R.id.custom_tutor_video_list_topic);
+                videoCount = itemView.findViewById(R.id.custom_tutor_video_list_count);
+                ratingBar = itemView.findViewById(R.id.custom_tutor_video_list_rating);
+                imageView = itemView.findViewById(R.id.custom_tutor_video_list_iv);
+                wishlistIv = itemView.findViewById(R.id.custom_tutor_video_list_wishlist);
+                wishlistFillIv = itemView.findViewById(R.id.custom_tutor_video_list_wishlist_red);
+                playIv = itemView.findViewById(R.id.custom_tutor_video_list_play);
+                shareIv = itemView.findViewById(R.id.custom_tutor_video_list_share);
+            }
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull TutorVideoListAdapter.MyHolder holder, int position) {
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    sp.edit().putString(ConstantSp.VIDEO_ID, arrayList.get(position).getId()).commit();
+                    sp.edit().putString(ConstantSp.VIDEO_THUMB, arrayList.get(position).getImage()).commit();
+                    new ToastIntentClass(context, VideoDetailActivity.class);
+                }
+            });
+
+            if (Float.parseFloat(arrayList.get(position).getRate()) <= 0.99) {
+                holder.ratingBar.setRating(Float.parseFloat("0.00"));
+            } else if (Float.parseFloat(arrayList.get(position).getRate()) <= 1.99) {
+                holder.ratingBar.setRating(Float.parseFloat("1.00"));
+            } else if (Float.parseFloat(arrayList.get(position).getRate()) <= 2.99) {
+                holder.ratingBar.setRating(Float.parseFloat("2.00"));
+            } else if (Float.parseFloat(arrayList.get(position).getRate()) <= 3.99) {
+                holder.ratingBar.setRating(Float.parseFloat("3.00"));
+            } else if (Float.parseFloat(arrayList.get(position).getRate()) <= 4.99) {
+                holder.ratingBar.setRating(Float.parseFloat("4.00"));
+            } else {
+                holder.ratingBar.setRating(Float.parseFloat("5.00"));
+            }
+
+            holder.title.setText(arrayList.get(position).getTitle());
+            holder.price.setText(context.getResources().getString(R.string.price_symbol) + String.format("%.2f", Double.parseDouble(arrayList.get(position).getPrice())));
+            holder.rate.setText(arrayList.get(position).getRate());
+            holder.rateCount.setText("(" + arrayList.get(position).getRateCount() + ")");
+            holder.grade.setText("Grade : " + arrayList.get(position).getGrade());
+            holder.subject.setText("Subject : " + arrayList.get(position).getSubject());
+            holder.topic.setText("Topic : " + arrayList.get(position).getTopic());
+            holder.videoCount.setText("+" + arrayList.get(position).getVideoCount());
+
+            //holder.imageView.setImageResource(arrayList.get(position).getImage());
+            if (arrayList.get(position).getImage() == null || arrayList.get(position).getImage().equalsIgnoreCase("")) {
+                holder.imageView.setImageResource(R.mipmap.ic_launcher);
+            } else {
+                Picasso.with(context).load(arrayList.get(position).getImage()).placeholder(R.mipmap.ic_launcher).into(holder.imageView);
+                *//*try {
+                    Picasso.with(context).load("http://img.youtube.com/vi/" + extractYoutubeId(arrayList.get(position).getImage()) + "/0.jpg").placeholder(R.mipmap.ic_launcher).into(holder.imageView);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }*//*
+            }
+
+            if (arrayList.get(position).getVideoCount() <= 0) {
+                holder.videoCount.setVisibility(View.GONE);
+                holder.playIv.setVisibility(View.VISIBLE);
+            } else {
+                holder.videoCount.setVisibility(View.VISIBLE);
+                holder.playIv.setVisibility(View.GONE);
+            }
+
+            if (arrayList.get(position).getWishlistFlag() == 0) {
+                holder.wishlistIv.setVisibility(View.VISIBLE);
+                holder.wishlistFillIv.setVisibility(View.GONE);
+            } else {
+                holder.wishlistIv.setVisibility(View.GONE);
+                holder.wishlistFillIv.setVisibility(View.VISIBLE);
+            }
+
+        }
+
+        @Override
+        public int getItemCount() {
+            return arrayList.size();
+        }
+
+        public String extractYoutubeId(String url) throws MalformedURLException {
+            String query = new URL(url).getQuery();
+            String[] param = query.split("&");
+            String id = null;
+            for (String row : param) {
+                String[] param1 = row.split("=");
+                if (param1[0].equals("v")) {
+                    id = param1[1];
+                }
+            }
+            return id;
+        }
+
+    }
+}*/

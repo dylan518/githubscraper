@@ -1,0 +1,21 @@
+public class BusinessInfo extends PersonInfo {
+    private String number;
+
+    public BusinessInfo(String name, String email, String number) {
+        super(name, email);
+        this.number = number;
+    }
+
+    public String getNumber() {
+        return number;
+    }
+
+    public void setNumber(String number) {
+        this.number = number;
+    }
+
+    @Override
+    public void display() {
+        System.out.println("The users contact name is " + super.getName() + " The users email is " + super.getEmail() + "and the users number is" + number + ".");
+    }
+}

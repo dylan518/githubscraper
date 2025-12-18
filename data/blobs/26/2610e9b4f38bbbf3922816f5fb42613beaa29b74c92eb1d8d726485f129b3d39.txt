@@ -1,0 +1,30 @@
+import java.util.Scanner;
+
+public class DiziOrtalamaVeFiltre {
+    public static void main(String[] args) {
+        try (Scanner scanner = new Scanner(System.in)) {
+            int[] sayilar = new int[10];
+            int toplam = 0;
+            
+            
+            System.out.println("Lütfen 10 adet tam sayı giriniz:");
+            for (int i = 0; i < 10; i++) {
+                System.out.print((i + 1) + ". sayı: ");
+                sayilar[i] = scanner.nextInt();
+                toplam += sayilar[i];
+            }
+            
+            
+            double ortalama = (double) toplam / 10;
+            System.out.println("\nDizinin ortalaması: " + ortalama);
+            
+            
+            System.out.println("50'den büyük olan sayılar:");
+            for (int sayi : sayilar) {
+                if (sayi > 50) {
+                    System.out.print(sayi + " ");
+                }
+            }
+        }
+    }
+}

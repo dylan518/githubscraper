@@ -1,0 +1,88 @@
+package io.reactivex.internal.operators.observable;
+
+import io.reactivex.ObservableSource;
+import io.reactivex.internal.util.ExceptionHelper;
+import io.reactivex.internal.util.NotificationLite;
+import io.reactivex.observers.DefaultObserver;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public final class BlockingObservableMostRecent<T> implements Iterable<T> {
+    final T initialValue;
+    final ObservableSource<T> source;
+
+    public BlockingObservableMostRecent(ObservableSource<T> observableSource, T t) {
+        this.source = observableSource;
+        this.initialValue = t;
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        C2929 c2929 = new C2929(this.initialValue);
+        this.source.subscribe(c2929);
+        return c2929.getIterable();
+    }
+
+    static final class C2929<T> extends DefaultObserver<T> {
+        volatile Object value;
+
+        C2929(T t) {
+            this.value = NotificationLite.next(t);
+        }
+
+        @Override
+        public void onComplete() {
+            this.value = NotificationLite.complete();
+        }
+
+        @Override
+        public void onError(Throwable th) {
+            this.value = NotificationLite.error(th);
+        }
+
+        @Override
+        public void onNext(T t) {
+            this.value = NotificationLite.next(t);
+        }
+
+        public C2929<T>.C2930 getIterable() {
+            return new C2930();
+        }
+
+        final class C2930 implements Iterator<T> {
+            private Object buf;
+
+            C2930() {
+            }
+
+            @Override
+            public boolean hasNext() {
+                this.buf = C2929.this.value;
+                return !NotificationLite.isComplete(this.buf);
+            }
+
+            @Override
+            public T next() {
+                try {
+                    if (this.buf == null) {
+                        this.buf = C2929.this.value;
+                    }
+                    if (NotificationLite.isComplete(this.buf)) {
+                        throw new NoSuchElementException();
+                    }
+                    if (NotificationLite.isError(this.buf)) {
+                        throw ExceptionHelper.wrapOrThrow(NotificationLite.getError(this.buf));
+                    }
+                    return (T) NotificationLite.getValue(this.buf);
+                } finally {
+                    this.buf = null;
+                }
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("Read only iterator");
+            }
+        }
+    }
+}

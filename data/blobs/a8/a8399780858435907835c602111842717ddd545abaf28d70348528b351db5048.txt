@@ -1,0 +1,10 @@
+package exercises.porgramming.exercises.ex9.ex9_2;
+
+public class TestClass {
+    public static void main(String[] args) {
+        Stock stock= new Stock("Oracle Corporation","Oracle");
+        stock.currentClosingPrice = 34.5;
+        stock.previousClosingPrice = 34.35;
+        System.out.println(stock.getChangePercent());
+    }
+}

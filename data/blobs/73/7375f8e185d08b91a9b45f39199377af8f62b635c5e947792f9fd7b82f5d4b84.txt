@@ -1,0 +1,53 @@
+package sockets_UDP_20_21;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
+public class Servidor {
+	public static void main(String[] args) {
+		while (true) {
+			System.out.println("El servidor está listo!");
+			try {
+				DatagramPacket datagrama;
+				int puertoServidor = 30500;
+				DatagramSocket socketDatagrama = new DatagramSocket(puertoServidor);
+				// el servidor recibe el texto
+				byte[] mensajeBytes = new byte[1024];
+				datagrama = new DatagramPacket(mensajeBytes, mensajeBytes.length);
+				socketDatagrama.receive(datagrama);
+				String texto = new String(datagrama.getData());
+				// el servidor recibe el caracter a eliminar
+				mensajeBytes = new byte[1024];
+				datagrama = new DatagramPacket(mensajeBytes, mensajeBytes.length);
+				socketDatagrama.receive(datagrama);
+				char c = new String(datagrama.getData()).charAt(0);
+				if (Character.compare(c, '*') == 0) {
+					break;
+				}
+				// el servidor procesa la petición
+				Objeto o = new Objeto();
+				o.procesar(texto, c);
+				// el servidor envía la respuesta al cliente en forma de Objeto
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				ObjectOutputStream oos = new ObjectOutputStream(baos);
+				oos.writeObject(o);
+				mensajeBytes = baos.toByteArray();
+				InetAddress cli = datagrama.getAddress();
+				int puertoCli = datagrama.getPort();
+				datagrama = new DatagramPacket(mensajeBytes, mensajeBytes.length, cli, puertoCli);
+				socketDatagrama.send(datagrama);
+				// servidor cierra los streams
+				oos.close();
+				baos.close();
+				// El servidor cierra el socket
+				socketDatagrama.close();
+			} catch (IOException ex) {
+				System.out.println("Se ha producido una IOException: " + ex.getMessage());
+			}
+		}
+	}
+}

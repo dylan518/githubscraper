@@ -1,0 +1,908 @@
+package Main;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+
+
+public class ElectricitySystem extends JFrame {
+
+    private JPanel contentPanel; // Panel để hiển thị nội dung động
+    private final String loggedInPhone; // Biến lưu số điện thoại của tài khoản đang đăng nhập
+    private static final Color RED_COLOR = new Color(179, 27, 27);
+    private static final Color GOLD_COLOR = new Color(255, 215, 0);
+
+    public ElectricitySystem(String loggedInPhone) {
+        this.loggedInPhone = loggedInPhone;
+
+
+        setTitle("Công ty điện lực");
+        setSize(1720, 850);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(null);
+        setIconImage(new ImageIcon("e.jpg").getImage());
+
+        // thêm các panel vào giao diện
+        add(createTopPanel());
+        add(createtwoPanel());
+        add(createthreePanel());
+
+        // panel nội dung
+        contentPanel = new JPanel();
+        contentPanel.setBounds(0, 180, 1537, 590); // chỉnh thanh cuộn
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setLayout(new BorderLayout());
+        add(contentPanel);
+
+        displayContent("TRANG CHỦ");
+
+        setVisible(true);
+    }
+
+    private JPanel createTopPanel() {
+        JPanel topPanel = new JPanel();
+        topPanel.setBackground(RED_COLOR);
+        topPanel.setBounds(0, 0, 1700, 40);
+        topPanel.setLayout(null);
+
+        JLabel hotlineLabel = new JLabel("Hotline: 0921205231");
+        hotlineLabel.setForeground(Color.WHITE);
+        hotlineLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        hotlineLabel.setBounds(10, 10, 200, 20);
+        topPanel.add(hotlineLabel);
+
+        JLabel emailLabel = new JLabel("Email: danhvt.24it@vku.udn.vn");
+        emailLabel.setForeground(Color.WHITE);
+        emailLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        emailLabel.setBounds(250, 10, 250, 20);
+        topPanel.add(emailLabel);
+
+        JButton accountButton = createButton("Tài khoản", 1150, 7, e -> displayAccountInfo(loggedInPhone));
+        accountButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        accountButton.setBounds(1150, 1000, 100, 25);
+        accountButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        accountButton.setFocusPainted(false);
+        topPanel.add(accountButton);
+
+        JButton cartButton = createButton("Biểu đồ", 1255, 1000, e -> displayChart());
+        topPanel.add(cartButton);
+
+        JButton checkoutButton = createButton("Thanh toán", 1360, 1000, e -> displayCheckout());
+        topPanel.add(checkoutButton);
+
+        return topPanel;
+    }
+
+    private JPanel createtwoPanel() {
+        JPanel twoPanel = new JPanel();
+        twoPanel.setBackground(new Color(191, 41, 41));
+        twoPanel.setBounds(0, 40, 1700, 100);
+        twoPanel.setLayout(null);
+
+        JLabel titleLabel = new JLabel("Tết đến xuân về");
+        titleLabel.setForeground(GOLD_COLOR);
+        titleLabel.setFont(new Font("Bahnschrift Light Condensed", Font.BOLD, 25));
+        titleLabel.setBounds(50, 20, 200, 50);
+        twoPanel.add(titleLabel);
+
+        JTextField searchField = new JTextField();
+        searchField.setFont(new Font("Arial", Font.PLAIN, 16));
+        searchField.setBounds(460, 30, 600, 40);
+        twoPanel.add(searchField);
+
+        JButton searchButton = createButton("TÌM", 1100, 38, e -> performSearch(searchField.getText().trim()));
+        twoPanel.add(searchButton);
+
+
+        return twoPanel;
+    }
+
+
+
+    private JPanel createthreePanel() {
+        JPanel threePanel = new JPanel();
+        threePanel.setBackground(RED_COLOR);
+        threePanel.setBounds(0, 140, 1700, 40);
+        threePanel.setLayout(new GridLayout(1, 3, 10, 0));
+
+        String[] menuItems = {"TRANG CHỦ", "GIỚI THIỆU", "LIÊN HỆ"};
+        for (String item : menuItems) {
+            JButton menuButton = new JButton(item);
+            menuButton.setForeground(Color.WHITE);
+            menuButton.setFont(new Font("Arial", Font.BOLD, 14));
+            menuButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            menuButton.setFocusPainted(false);
+            menuButton.setContentAreaFilled(false);
+            menuButton.setBorderPainted(false);
+
+            menuButton.addActionListener(e -> displayContent(item));
+            threePanel.add(menuButton);
+        }
+
+        return threePanel;
+    }
+
+
+    private JPanel createFooterPanel() {
+        JPanel footerPanel = new JPanel();
+        footerPanel.setBackground(new Color(64, 64, 64));
+        footerPanel.setPreferredSize(new Dimension(1537, 500)); //
+        footerPanel.setLayout(new GridLayout(2, 3));
+
+
+        JLabel customerInfo = new JLabel("<html><b>THÔNG TIN KHÁCH HÀNG</b><br>Chính sách sử dụng điện<br>Hướng dẫn thanh toán<br>Hỗ trợ khách hàng<br>Điều khoản dịch vụ</html>");
+        customerInfo.setForeground(Color.WHITE);
+        customerInfo.setFont(new Font("Arial", Font.PLAIN, 14));
+        customerInfo.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(customerInfo);
+
+
+        JLabel powerPolicy = new JLabel("<html><b>CHÍNH SÁCH ĐIỆN LỰC</b><br>Chính sách giá điện<br>Chính sách bảo mật thông tin<br>Chính sách bảo trì<br>Quy định an toàn điện</html>");
+        powerPolicy.setForeground(Color.WHITE);
+        powerPolicy.setFont(new Font("Arial", Font.PLAIN, 14));
+        powerPolicy.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(powerPolicy);
+
+
+        JLabel supportService = new JLabel("<html><b>DỊCH VỤ HỖ TRỢ</b><br>Giờ mở cửa: 8h00 AM - 22h00 PM<br>Hotline: 0921205231<br>Email hỗ trợ: danhvt.24it@vku.udn.vn</html>");
+        supportService.setForeground(Color.WHITE);
+        supportService.setFont(new Font("Arial", Font.PLAIN, 14));
+        supportService.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(supportService);
+
+
+        JLabel contactInfo = new JLabel("<html><b>CÔNG TY TNHH ĐIỆN LỰC RKK</b><br>Địa chỉ: Đắk Lắk<br>Hotline: 0921205231<br>Email: danhvt.24it@vku.udn.vn</html>");
+        contactInfo.setForeground(Color.WHITE);
+        contactInfo.setFont(new Font("Arial", Font.PLAIN, 14));
+        contactInfo.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(contactInfo);
+
+
+        JLabel paymentMethods = new JLabel("<html><b>PHƯƠNG THỨC THANH TOÁN</b><br>Chuyển khoản ngân hàng<br>Thanh toán trực tiếp<br>Thanh toán qua ví điện tử</html>");
+        paymentMethods.setForeground(Color.WHITE);
+        paymentMethods.setFont(new Font("Arial", Font.PLAIN, 14));
+        paymentMethods.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(paymentMethods);
+
+
+        JLabel socialMedia = new JLabel("<html><b>KẾT NỐI VỚI CHÚNG TÔI</b><br>Facebook: fb.com/dienluc<br>Twitter: twitter.com/dienluc<br>LinkedIn: linkedin.com/company/dienluc</html>");
+        socialMedia.setForeground(Color.WHITE);
+        socialMedia.setFont(new Font("Arial", Font.PLAIN, 14));
+        socialMedia.setHorizontalAlignment(JLabel.CENTER);
+        footerPanel.add(socialMedia);
+
+        return footerPanel;
+    }
+
+
+
+    private JButton createButton(String text, int x, int y, ActionListener action) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Arial", Font.PLAIN, 12));
+        button.setBounds(x, y, 100, 25);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addActionListener(action);
+        return button;
+    }
+
+    private void displayContent(String menuItem) {
+        contentPanel.removeAll();
+
+        JScrollPane scrollPane;
+        switch (menuItem) {
+            case "TRANG CHỦ":
+                scrollPane = createHomeContent();
+                break;
+            case "GIỚI THIỆU":
+                scrollPane = createAboutContent();
+                break;
+            case "LIÊN HỆ":
+                scrollPane = createContactContent();
+                break;
+            default:
+                scrollPane = new JScrollPane(new JPanel());
+                break;
+        }
+
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+// thông tin tài khoản
+private void displayAccountInfo(String phone) {
+    contentPanel.removeAll();
+    contentPanel.setLayout(new BorderLayout());
+
+    try (Connection conn = DriverManager.getConnection(
+            "jdbc:mysql://localhost:3306/mydatabase", "root", "");
+         PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT name, sdt, ngaysinh, gioitinh, diachi, email, sotaikhoan FROM users WHERE sdt = ?")) {
+
+        stmt.setString(1, phone);
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setPreferredSize(new Dimension(400, 750));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.anchor = GridBagConstraints.WEST;
+
+            int row = 0;
+
+
+            JTextField nameField = createLabeledTextField("Tên tài khoản:", rs.getString("name"), formPanel, gbc, row++);
+            nameField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField phoneField = createLabeledTextField("Số điện thoại:", rs.getString("sdt"), formPanel, gbc, row++);
+            phoneField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField birthdateField = createLabeledTextField("Ngày sinh:", rs.getString("ngaysinh"), formPanel, gbc, row++);
+            birthdateField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField genderField = createLabeledTextField("Giới tính:", rs.getString("gioitinh"), formPanel, gbc, row++);
+            genderField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField addressField = createLabeledTextField("Địa chỉ:", rs.getString("diachi"), formPanel, gbc, row++);
+            addressField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField emailField = createLabeledTextField("Email:", rs.getString("email"), formPanel, gbc, row++);
+            emailField.setFont(new Font("Arial", Font.PLAIN, 16));
+            JTextField accountNumberField = createLabeledTextField("Số tài khoản:", rs.getString("sotaikhoan"), formPanel, gbc, row++);
+            accountNumberField.setFont(new Font("Arial", Font.PLAIN, 16));
+
+
+            JPanel buttonPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbcButtons = new GridBagConstraints();
+            gbcButtons.insets = new Insets(20, 20, 20, 20);
+            gbcButtons.fill = GridBagConstraints.HORIZONTAL;
+            gbcButtons.anchor = GridBagConstraints.CENTER;
+
+            JButton addButton = new JButton("Thêm");
+            addButton.setFont(new Font("Arial", Font.PLAIN, 16));
+            addButton.addActionListener(e -> addAdditionalInfo(
+                    phoneField.getText(), emailField.getText(), accountNumberField.getText()));
+            addButton.setFocusPainted(false);
+            addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            gbcButtons.gridx = 0;
+            gbcButtons.gridy = 0;
+            buttonPanel.add(addButton, gbcButtons);
+
+            JButton editButton = new JButton("Sửa");
+            editButton.setFont(new Font("Arial", Font.PLAIN, 16));
+            editButton.addActionListener(e -> editAccount(
+                    phone, nameField.getText(), phoneField.getText(),
+                    birthdateField.getText(), genderField.getText(),
+                    addressField.getText(), emailField.getText(), accountNumberField.getText()));
+            editButton.setFocusPainted(false);
+            editButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            gbcButtons.gridx = 1;
+            buttonPanel.add(editButton, gbcButtons);
+
+            JButton deleteButton = new JButton("Xóa");
+            deleteButton.setFont(new Font("Arial", Font.PLAIN, 16));
+            deleteButton.addActionListener(e -> deleteAccount(phone));
+            deleteButton.setFocusPainted(false);
+            deleteButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            gbcButtons.gridx = 2;
+            buttonPanel.add(deleteButton, gbcButtons);
+
+
+            gbc.gridx = 1;
+            gbc.gridy = row;
+            gbc.gridwidth = 2;
+            formPanel.add(buttonPanel, gbc);
+
+
+            JScrollPane scrollPane = new JScrollPane(formPanel);
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+            scrollPane.setPreferredSize(new Dimension(400, 400));
+
+            addButton.setContentAreaFilled(true);
+            addButton.setBackground(Color.LIGHT_GRAY);
+
+            editButton.setContentAreaFilled(true);
+            editButton.setBackground(Color.LIGHT_GRAY);
+
+            deleteButton.setContentAreaFilled(true);
+            deleteButton.setBackground(Color.LIGHT_GRAY);
+
+
+
+            contentPanel.add(scrollPane, BorderLayout.CENTER);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    contentPanel.revalidate();
+    contentPanel.repaint();
+}
+
+
+    private JTextField createLabeledTextField(String labelText, String text, JPanel container, GridBagConstraints gbc, int row) {
+        JLabel label = new JLabel(labelText);
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        container.add(label, gbc);
+
+        JTextField textField = new JTextField(text, 30);
+        textField.setEditable(true);
+        textField.setPreferredSize(new Dimension(200, 30));
+        gbc.gridx = 1;
+        container.add(textField, gbc);
+
+        return textField;
+    }
+
+
+
+
+
+    // phần nút thêm
+    private void addAdditionalInfo(String phone, String email, String accountNumber) {
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/mydatabase", "root", "");
+             PreparedStatement stmt = conn.prepareStatement(
+                     "UPDATE users SET email = ?, sotaikhoan = ? WHERE sdt = ?")) {
+
+            stmt.setString(1, email);
+            stmt.setString(2, accountNumber);
+            stmt.setString(3, phone);
+
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(null, "Thông tin đã được cập nhật thành công!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Có lỗi xảy ra khi cập nhật thông tin.");
+        }
+    }
+    // phần nút xóa
+    private void deleteAccount(String phone) {
+        int confirm = JOptionPane.showConfirmDialog(null, "Bạn có chắc chắn muốn xóa tài khoản này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            try (Connection conn = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/mydatabase", "root", "");
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "DELETE FROM users WHERE sdt = ?")) {
+
+                stmt.setString(1, phone);
+                int rowsDeleted = stmt.executeUpdate();
+                if (rowsDeleted > 0) {
+                    JOptionPane.showMessageDialog(null, "Tài khoản đã được xóa thành công!");
+                    contentPanel.removeAll();
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Có lỗi xảy ra khi xóa tài khoản.");
+            }
+        }
+    }
+// phần nút sửa
+    private void editAccount(String phone, String name, String newPhone, String birthdate, String gender, String address, String email, String accountNumber) {
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/mydatabase", "root", "");
+             PreparedStatement stmt = conn.prepareStatement(
+                     "UPDATE users SET sdt=?, name = ?, ngaysinh = ?, gioitinh = ?, diachi = ?, email = ?, sotaikhoan = ? WHERE sdt = ?")) {
+
+            stmt.setString(1, newPhone);
+            stmt.setString(2, name);
+            stmt.setString(3, birthdate);
+            stmt.setString(4, gender);
+            stmt.setString(5, address);
+            stmt.setString(6, email);
+            stmt.setString(7, accountNumber);
+            stmt.setString(8, phone);
+
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(null, "Thông tin tài khoản đã được cập nhật thành công!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Có lỗi xảy ra khi cập nhật thông tin.");
+        }
+    }
+
+
+//
+
+
+    private void displayChart() {
+        JLabel label = new JLabel("Biểu đồ!");
+        label.setFont(new Font("Arial", Font.BOLD, 24));
+
+
+
+        contentPanel.removeAll();
+        contentPanel.add(label, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    //thanh toán
+    private void displayCheckout() {
+        contentPanel.removeAll();
+        contentPanel.setLayout(new BorderLayout());
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        // panel bên trái
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcLeft = new GridBagConstraints();
+        gbcLeft.insets = new Insets(75, 40, 70, 40);
+        gbcLeft.fill = GridBagConstraints.HORIZONTAL;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.weighty = 0;
+
+        JLabel phoneLabel = new JLabel("Số điện thoại:");
+        phoneLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField phoneField = new JTextField();
+        phoneField.setPreferredSize(new Dimension(250, 30));
+
+        JLabel usageLabel = new JLabel("Số điện đã sử dụng (kWh):");
+        usageLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField usageField = new JTextField();
+        usageField.setPreferredSize(new Dimension(250, 30));
+
+        JLabel totalLabel = new JLabel("Tổng tiền điện (VNĐ):");
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField totalField = new JTextField();
+        totalField.setPreferredSize(new Dimension(250, 30));
+        totalField.setEditable(false);
+
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = 0;
+        leftPanel.add(phoneLabel, gbcLeft);
+        gbcLeft.gridx = 1;
+        leftPanel.add(phoneField, gbcLeft);
+
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = 1;
+        leftPanel.add(usageLabel, gbcLeft);
+        gbcLeft.gridx = 1;
+        leftPanel.add(usageField, gbcLeft);
+
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = 2;
+        leftPanel.add(totalLabel, gbcLeft);
+        gbcLeft.gridx = 1;
+        leftPanel.add(totalField, gbcLeft);
+
+        // panel bên phải
+        JPanel rightPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcRight = new GridBagConstraints();
+        gbcRight.insets = new Insets(40, 40, 40, 40);
+        gbcRight.fill = GridBagConstraints.HORIZONTAL;
+        gbcRight.weightx = 1.0;
+        gbcRight.weighty = 0;
+
+        JLabel accountLabel = new JLabel("Số tài khoản:");
+        accountLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField accountField = new JTextField();
+        accountField.setPreferredSize(new Dimension(250, 30));
+
+        JLabel amountLabel = new JLabel("Số tiền:");
+        amountLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField amountField = new JTextField();
+        amountField.setPreferredSize(new Dimension(250, 30));
+
+        JLabel paymentDateLabel = new JLabel("Ngày thanh toán:");
+        paymentDateLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JTextField paymentDateField = new JTextField();
+        paymentDateField.setPreferredSize(new Dimension(250, 30));
+
+        JButton payButton = new JButton("Thanh toán");
+        payButton.setFont(new Font("Arial", Font.BOLD, 24));
+        payButton.setFocusPainted(false);
+        payButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+
+        JButton invoiceButton = new JButton("Hóa đơn");
+        invoiceButton.setFont(new Font("Arial", Font.BOLD, 24));
+        invoiceButton.setFocusPainted(false);
+        invoiceButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+
+        gbcRight.gridy = 4;
+        rightPanel.add(invoiceButton, gbcRight);
+
+        invoiceButton.addActionListener(e -> {
+            JPanel invoicePanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(45, 300, 45, 300);
+            gbc.gridx = 0;
+            gbc.gridy = GridBagConstraints.RELATIVE;
+            gbc.anchor = GridBagConstraints.CENTER;
+
+            JLabel label = new JLabel("Chi tiết hóa đơn!");
+            label.setFont(new Font("TIMES NEW ROMAN", Font.BOLD, 30));
+            label.setBounds(40, 10, 400, 50);
+            invoicePanel.add(label);
+
+            invoicePanel.add(new JLabel("Số điện thoại: " + phoneField.getText()), gbc);
+            invoicePanel.add(new JLabel("Số điện đã sử dụng (kWh): " + usageField.getText()), gbc);
+            invoicePanel.add(new JLabel("Tổng tiền điện (VNĐ): " + totalField.getText()), gbc);
+            invoicePanel.add(new JLabel("Số tài khoản: " + accountField.getText()), gbc);
+            invoicePanel.add(new JLabel("Ngày thanh toán: " + paymentDateField.getText()), gbc);
+
+            contentPanel.removeAll();
+            contentPanel.setLayout(new GridBagLayout());
+            contentPanel.add(invoicePanel, gbc);
+
+
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        });
+
+
+
+        gbcRight.gridx = 0;
+        gbcRight.gridy = 0;
+        rightPanel.add(accountLabel, gbcRight);
+        gbcRight.gridx = 1;
+        rightPanel.add(accountField, gbcRight);
+
+        gbcRight.gridx = 0;
+        gbcRight.gridy = 1;
+        rightPanel.add(amountLabel, gbcRight);
+        gbcRight.gridx = 1;
+        rightPanel.add(amountField, gbcRight);
+
+        gbcRight.gridx = 0;
+        gbcRight.gridy = 2;
+        rightPanel.add(paymentDateLabel, gbcRight);
+        gbcRight.gridx = 1;
+        rightPanel.add(paymentDateField, gbcRight);
+
+        gbcRight.gridx = 1;
+        gbcRight.gridy = 4;
+        rightPanel.add(payButton,gbcRight);
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
+        splitPane.setDividerLocation(0.55);
+        splitPane.setResizeWeight(0.5);
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+
+        contentPanel.add(mainPanel, BorderLayout.CENTER);
+
+        // tự động tính tổng tiền điện khi nhập số kWh
+        usageField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String usageStr = usageField.getText().trim();
+
+                try {
+                    double usage = Double.parseDouble(usageStr);
+                    double pricePerKWh = 2000;
+                    double total = usage * pricePerKWh;
+                    totalField.setText(String.format("%.0f VNĐ", total));
+
+                    // tự động cập nhật số tiền sang phần bên phải
+                    amountField.setText(String.format("%.0f", total));
+                } catch (NumberFormatException ex) {
+                    totalField.setText("");
+                    amountField.setText("");
+                }
+            }
+        });
+
+        // xử lý sự kiện nút thanh toán
+        payButton.addActionListener(e -> {
+            String account = accountField.getText().trim();
+            String amountStr = amountField.getText().trim();
+            String paymentDate = paymentDateField.getText().trim();
+            String phone = phoneField.getText().trim();
+            String usageStr = usageField.getText().trim();
+
+            if (account.isEmpty() || amountStr.isEmpty() || paymentDate.isEmpty() || phone.isEmpty() || usageStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                double amount = Double.parseDouble(amountStr);
+                double usage = Double.parseDouble(usageStr);
+
+                // Kiểm tra OTP
+                String otp = JOptionPane.showInputDialog(this, "Nhập mã OTP:", "Xác thực OTP", JOptionPane.QUESTION_MESSAGE);
+
+                if (otp == null || otp.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Bạn chưa nhập mã OTP!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+
+                java.sql.Date sqlDate;
+                try {
+                    SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy");
+                    format.setLenient(false);
+                    java.util.Date utilDate = format.parse(paymentDate);
+                    sqlDate = new java.sql.Date(utilDate.getTime());
+                } catch (ParseException ex) {
+                    JOptionPane.showMessageDialog(this, "Ngày thanh toán không đúng định dạng (dd-MM-yyyy)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+
+                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydatabase", "root", "")) {
+                    try (PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT INTO electricity_usage (sdt, usage_kwh, total_amount) VALUES (?, ?, ?)")) {
+                        stmt.setString(1, phone);
+                        stmt.setDouble(2, usage);
+                        stmt.setDouble(3, amount);
+                        stmt.executeUpdate();
+                    }
+
+
+                    try (PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT INTO accounts (account_number, total_paid, last_payment_date) VALUES (?, ?, ?)")) {
+                        stmt.setString(1, account);
+                        stmt.setDouble(2, amount);
+                        stmt.setDate(3, sqlDate);
+                        stmt.executeUpdate();
+                    }
+
+                    try (PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT INTO transactions (account_number, amount, payment_date, otp_code) VALUES (?, ?, ?, ?)")) {
+                        stmt.setString(1, account);
+                        stmt.setDouble(2, amount);
+                        stmt.setDate(3, sqlDate);
+                        stmt.setString(4, otp);
+                        stmt.executeUpdate();
+                    }
+
+                    JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi lưu dữ liệu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Dữ liệu không hợp lệ! Vui lòng kiểm tra lại số tiền và số điện.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+
+
+    private void performSearch(String query) {
+        query = query.trim();
+        if (query.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập từ khóa tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        boolean found = false;
+        contentPanel.removeAll();
+
+        for (Component component : getAllComponents(contentPanel)) {
+            if (searchInComponent(component, query.toLowerCase())) {
+                found = true;
+            }
+        }
+
+
+        if (!found) {
+            JLabel notFoundLabel = new JLabel("Không tìm thấy kết quả nào!", SwingConstants.CENTER);
+            notFoundLabel.setFont(new Font("Arial", Font.BOLD, 24));
+            contentPanel.setLayout(new BorderLayout());
+            contentPanel.add(notFoundLabel, BorderLayout.CENTER);
+        }
+
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private boolean searchInComponent(Component component, String query) {
+        boolean found = false;
+        if (component instanceof JLabel) {
+            JLabel label = (JLabel) component;
+            if (label.getText().toLowerCase().contains(query)) {
+                found = true;
+                highlightComponent(label);
+            }
+        } else if (component instanceof JTextField) {
+            JTextField textField = (JTextField) component;
+            if (textField.getText().toLowerCase().contains(query)) {
+                found = true;
+                highlightComponent(textField);
+            }
+        } else if (component instanceof JTextArea) {
+            JTextArea textArea = (JTextArea) component;
+            if (textArea.getText().toLowerCase().contains(query)) {
+                found = true;
+                highlightComponent(textArea);
+            }
+        } else if (component instanceof JButton) {
+            JButton button = (JButton) component;
+            if (button.getText().toLowerCase().contains(query)) {
+                found = true;
+                highlightComponent(button);
+            }
+        } else if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                found |= searchInComponent(child, query); // duyệt đệ quy các thành phần con
+            }
+        }
+        return found;
+    }
+
+    private void highlightComponent(JComponent component) {
+        component.setBackground(Color.YELLOW);
+        component.requestFocus();
+    }
+
+    private java.util.List<Component> getAllComponents(final Container container) {
+        Component[] components = container.getComponents();
+        java.util.List<Component> componentList = new java.util.ArrayList<>();
+        for (Component component : components) {
+            componentList.add(component);
+            if (component instanceof Container) {
+                componentList.addAll(getAllComponents((Container) component)); // lấy các thành phần con
+            }
+        }
+        return componentList;
+    }
+
+
+
+    //
+private JScrollPane createHomeContent() {
+    JPanel panel = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g); // Giữ lại các thành phần mặc định
+            try {
+                // Tải ảnh nền
+                ImageIcon icon = new ImageIcon("dienluc1.jpg");
+                Image img = icon.getImage();
+                g.drawImage(img, 0, 0, 1550, 500, this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    panel.setLayout(null);
+    panel.setBackground(Color.WHITE);
+    panel.setPreferredSize(new Dimension(1500, 1300));
+
+    JLabel label = new JLabel("Chào mừng đến Trang Chủ!", SwingConstants.LEFT);
+    label.setFont(new Font("Arial", Font.BOLD, 28));
+    label.setBounds(80, 10, 400, 50);
+    panel.add(label);
+
+    JPanel footerPanel = createFooterPanel();
+    footerPanel.setBounds(0, 750, 1600, 550);
+    panel.add(footerPanel);
+
+    JScrollPane scrollPane = new JScrollPane(panel);
+    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(20, 0));
+
+    return scrollPane;
+}
+
+
+
+
+    private JScrollPane createAboutContent() {
+        JPanel panel = new JPanel();
+        panel.setBackground(Color.WHITE);
+        panel.setLayout(null);
+        panel.setPreferredSize(new Dimension(1500, 1100));
+
+        JLabel label = new JLabel("Thông tin về công ty!" , SwingConstants.LEFT);
+        label.setFont(new Font("Arial", Font.BOLD, 28));
+        label.setBounds(80, 10, 400, 50);
+        panel.add(label);
+
+
+        JTextArea textArea = new JTextArea();
+        textArea.setText("Công ty Điện Lực RKK được thành lập vào năm 2006, với mục tiêu trở thành nhà cung cấp dịch vụ điện lực hàng đầu tại Việt Nam. " +
+                "Với hơn 19 năm kinh nghiệm trong ngành, chúng tôi đã không ngừng phát triển và hiện đại hóa để đáp ứng nhu cầu ngày càng cao của khách hàng.\n" +
+                "\n" +
+                "Sứ mệnh của chúng tôi là cung cấp nguồn điện ổn định, an toàn và hiệu quả cho mọi hộ gia đình và doanh nghiệp, " +
+                "góp phần thúc đẩy sự phát triển bền vững của đất nước.\n" +
+                "\n" +
+                "Tầm nhìn đến năm 2030, chúng tôi sẽ trở thành doanh nghiệp tiên phong trong lĩnh vực năng lượng sạch và tái tạo, " +
+                "mang đến những giải pháp năng lượng xanh cho cộng đồng.\n" +
+                "\n" +
+                "Chúng tôi tự hào với đội ngũ nhân viên tận tâm, chuyên nghiệp và hệ thống cơ sở vật chất hiện đại," +
+                " luôn sẵn sàng phục vụ khách hàng 24/7. Các thành tựu nổi bật của công ty bao gồm việc mở rộng hệ thống điện lưới quốc gia, " +
+                "triển khai các dự án năng lượng mặt trời và gió, giúp giảm thiểu tác động môi trường.\n" +
+                "\n");
+        textArea.setFont(new Font("Arial", Font.BOLD, 20));
+        textArea.setForeground(new Color(182, 12, 12));
+        textArea.setLineWrap(true); // tự động xuống dòng
+        textArea.setWrapStyleWord(true); // xuống dòng tại từ
+        textArea.setBounds(30, 70, 1440, 300);
+        textArea.setOpaque(false);
+        textArea.setEditable(false);
+
+        panel.add(textArea);
+
+        JPanel footerPanel = createFooterPanel();
+        footerPanel.setBounds(0, 550, 1600, 550); // vị trí và kích thước của footerPanel
+        panel.add(footerPanel);
+
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(20, 0));
+
+        // Đảm bảo nội dung cuộn về đầu trang khi hiển thị
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+            verticalScrollBar.setValue(0); // Cuộn lên đầu
+        });
+
+        return scrollPane;
+    }
+
+// lien he
+    private JScrollPane createContactContent() {
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g); // Giữ lại các thành phần mặc định
+                try {
+                    // Tải ảnh nền
+                    ImageIcon icon = new ImageIcon("dl.jpg");
+                    Image img = icon.getImage();
+                    g.drawImage(img, 0, 60, 1550, 400, this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        panel.setBackground(Color.WHITE);
+        panel.setLayout(null);
+        panel.setPreferredSize(new Dimension(1500, 1100));
+
+        JLabel label = new JLabel("Liên hệ tại đây!");
+        label.setFont(new Font("Arial", Font.BOLD, 24));
+        label.setBounds(50, 10, 400, 50);
+        panel.add(label);
+
+        JPanel footerPanel = createFooterPanel();
+        footerPanel.setBounds(0, 550, 1600, 550);
+        panel.add(footerPanel);
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(20, 200));
+
+        return scrollPane;
+    }
+
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            String phone = JOptionPane.showInputDialog(null, "Nhập số điện thoại của bạn:", "Đăng nhập", JOptionPane.PLAIN_MESSAGE);
+            if (phone != null && !phone.trim().isEmpty()) {
+                new ElectricitySystem(phone.trim());
+            } else {
+                JOptionPane.showMessageDialog(null, "Số điện thoại không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+}

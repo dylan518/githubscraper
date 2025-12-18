@@ -1,0 +1,63 @@
+package com.android.settings.display.font;
+
+/* loaded from: classes2.dex */
+public class e extends com.android.settings.display.font.f {
+
+    /* renamed from: i, reason: collision with root package name */
+    private final android.content.Context f6084i;
+
+    /* renamed from: j, reason: collision with root package name */
+    private android.content.res.Configuration f6085j;
+
+    /* renamed from: k, reason: collision with root package name */
+    private boolean f6086k;
+
+    public e(android.content.Context context, android.content.res.Configuration configuration, boolean z) {
+        super(context, configuration);
+        this.f6084i = context;
+        this.f6085j = configuration;
+        this.f6086k = z;
+    }
+
+    @Override // com.android.settings.display.font.f, com.huawei.uikit.hwviewpager.widget.g
+    public void b(android.view.ViewGroup viewGroup, int i2, java.lang.Object obj) {
+        if (obj instanceof android.view.View) {
+            viewGroup.removeView((android.view.View) obj);
+        }
+    }
+
+    @Override // com.android.settings.display.font.f, com.huawei.uikit.hwviewpager.widget.g
+    public int d() {
+        return 1;
+    }
+
+    @Override // com.android.settings.display.font.f, com.huawei.uikit.hwviewpager.widget.g
+    public int e(java.lang.Object obj) {
+        return -2;
+    }
+
+    @Override // com.android.settings.display.font.f, com.huawei.uikit.hwviewpager.widget.g
+    public java.lang.Object i(android.view.ViewGroup viewGroup, int i2) {
+        android.content.Context createConfigurationContext = this.f6084i.createConfigurationContext(this.f6085j);
+        createConfigurationContext.getTheme().setTo(this.f6084i.getTheme());
+        android.view.View inflate = android.view.LayoutInflater.from(createConfigurationContext).inflate(this.f6086k ? com.android.settings.R.layout.big_font_scale_settings_preview_land : com.android.settings.R.layout.big_font_scale_settings_preview, viewGroup, false);
+        viewGroup.addView(inflate);
+        return inflate;
+    }
+
+    @Override // com.android.settings.display.font.f, com.huawei.uikit.hwviewpager.widget.g
+    public boolean j(android.view.View view, java.lang.Object obj) {
+        return view == obj;
+    }
+
+    @Override // com.android.settings.display.font.f
+    public android.content.res.Configuration r() {
+        return this.f6085j;
+    }
+
+    @Override // com.android.settings.display.font.f
+    public void s(android.content.res.Configuration configuration) {
+        this.f6085j = configuration;
+        k();
+    }
+}

@@ -1,0 +1,246 @@
+import java.util.*;
+
+
+public class Catacomb_Crawler {
+
+
+    public class Actor {
+        protected String name;
+        protected int health;
+        protected int x, y; // Position
+
+        public Actor(String name, int health, int x, int y) {
+            this.name = name;
+            this.health = health;
+            this.x = x;
+            this.y = y;
+        }
+
+        public void move(String direction) {
+        }
+
+        public boolean isAlive() {
+            return health > 0;
+        }
+
+        public String getPosition() {
+            return  x + ", " + y ;
+        }
+
+        public void hitDamage(int damage) {
+            health -= damage;
+        }
+    }
+
+// https://www.javatpoint.com/super-keyword
+// Modified the reference and used here to create and initialize Hero object 
+    public class Hero extends Actor {
+        private Game game; 
+    // initialize hero
+        public Hero(String name, int x, int y, Game game) {
+            super(name, 100, x, y);
+            this.game = game; 
+        }
+
+        public void move(String direction) {
+            if ("north".equals(direction.toLowerCase())) {
+                if (y > 0) y--;
+                else System.out.println("You can't move that way!");
+            } else if ("south".equals(direction.toLowerCase())) {
+                if (y < game.getGridSize() - 1) y++; 
+                else System.out.println("You can't move that way!");
+            } else if ("east".equals(direction.toLowerCase())) {
+                if (x < game.getGridSize() - 1) x++; 
+                else System.out.println("You can't move that way!");
+            } else if ("west".equals(direction.toLowerCase())) {
+                if (x > 0) x--;
+                else System.out.println("You can't move that way!");
+            } else {
+                System.out.println("You can't move that way!");
+            }
+            health -= 2; // Moving decreases health by 2
+        }
+    }
+
+// initialize mosters
+
+    public class Monster extends Actor {
+        public Monster(String name, int x, int y) {
+            super(name, 25, x, y);
+        }
+    }
+
+// https://www.geeksforgeeks.org/list-interface-java-examples/
+// modified the reference from above page to create list of monsters
+
+    public class Game {
+        private int gridSize;
+        private Hero hero;
+        private List<Monster> monsters = new ArrayList<>();
+
+        public Game(String heroName, int gridSize) {
+            this.gridSize = gridSize;
+            hero = new Hero(heroName, 0, 0, this); 
+            initializeMonsters();
+        }
+
+        public int getGridSize() {
+            return gridSize;
+        }
+
+// https://geeksforgeeks.org/generating-random-numbers-in-java/
+// used random class as a reference from above page to generate position (x,y)
+        private void initializeMonsters() {
+            int numMonsters = gridSize * gridSize / 6;
+            Random random = new Random();
+            for (int i = 0; i < numMonsters; i++) {
+                int x, y;
+                do {
+                    x = random.nextInt(gridSize);
+                    y = random.nextInt(gridSize);
+                } while ((x == 0 && y == 0) || isMonsterAt(x, y));
+                monsters.add(new Monster("Monster " + (i + 1), x, y));
+            }
+        }
+    // monster position check
+        private boolean isMonsterAt(int x, int y) {
+            for (Monster monster : monsters) {
+                if (monster.x == x && monster.y == y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+// Extra credit - implemented the map to display hero and monsters in the game
+        private void displayMap() {
+            // https://www.geeksforgeeks.org/different-ways-to-declare-and-initialize-2-d-array-in-java/
+            // Modified the reference of initializing the 2d array using the website
+            char[][] grid = new char[gridSize][gridSize];
+
+            
+            for (int i = 0; i < gridSize; i++) {
+                for (int j = 0; j < gridSize; j++) {
+                    grid[i][j] = '.';
+                }
+            }
+
+            // locate hero
+            grid[hero.y][hero.x] = 'H';
+
+            // locate monsters
+            for (int i = 0; i < monsters.size(); i++) {
+                Monster monster = monsters.get(i);
+                grid[monster.y][monster.x] = 'M';
+            }
+
+            // display map
+            System.out.println("Catacomb Map:");
+            for (int i = 0; i < gridSize; i++) {
+                for (int j = 0; j < gridSize; j++) {
+                    System.out.print(grid[i][j] + " ");
+                }
+                System.out.println();
+            }
+        }
+
+        public void play() {
+            Scanner scanner = new Scanner(System.in);
+
+            while (true) {
+                displayMap(); 
+
+                System.out.println(hero.name + " at " + hero.getPosition() + " with " + hero.health + " health");
+                System.out.println("You smell " + countNearbyMonsters() + " monsters nearby.");
+                System.out.print("Which way do you want to go (north, south, east, west)? ");
+                String direction = scanner.nextLine();
+                
+
+                hero.move(direction); // move to direction
+
+                if (hero.health <= 0) {
+                    System.out.println("Game over.");
+                    break;
+                }
+
+                checkForMonsters();
+
+                if (hero.x == gridSize - 1 && hero.y == gridSize - 1) {
+                    System.out.println("You have escaped the catacomb");
+                    break;
+                }
+            }
+
+            scanner.close();
+        }
+
+        private int countNearbyMonsters() {
+            int count = 0;
+            for (Monster monster : monsters) {
+                if (Math.abs(monster.x - hero.x) + Math.abs(monster.y - hero.y) == 1) {
+                    count++;
+                }
+            }
+            return count;
+        }
+//https://www.w3schools.com/java/java_iterator.asp
+// used the reference from the above page and modified to iterate the monster objects
+        private void checkForMonsters() {
+            Iterator<Monster> iterator = monsters.iterator();
+
+            while (iterator.hasNext()) {
+                Monster monster = iterator.next();
+                if (monster.x == hero.x && monster.y == hero.y) {
+                    System.out.println("Encountered " + monster.name + " at " + monster.getPosition());
+                    fight(monster);
+                    if (!monster.isAlive()) {
+                        iterator.remove();
+                        System.out.println(monster.name + " has been defeated!");
+                    }
+                    if (!hero.isAlive()) {
+                        System.out.println("defeated by " + monster.name + "! Game over.");
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void fight(Monster monster) {
+            Random random = new Random();
+
+            while (hero.isAlive() && monster.isAlive()) {
+                int heroDamage = random.nextInt(10) + 1;
+                int monsterDamage = random.nextInt(5) + 1;
+
+                monster.hitDamage(heroDamage);
+                System.out.println("You hit for " + heroDamage);
+                if (monster.isAlive()) {
+                    hero.hitDamage(monsterDamage);
+                    System.out.println("You get hit for " + monsterDamage);
+                }
+            }
+        }
+    }
+
+
+    public void start() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("What is your name, heroic adventurer? ");
+        String heroName = scanner.nextLine();
+
+        int gridSize;
+        while (true) {
+            System.out.print("How wide of a catacomb do you want to face (5-10)? ");
+            gridSize = scanner.nextInt();
+            if (gridSize >= 5 && gridSize <= 10) break;
+            System.out.println("Invalid grid size! Please enter a number between 5 and 10.");
+        }
+
+        Game game = new Game(heroName, gridSize);
+        game.play();
+    }
+
+    public static void main(String[] args) {
+        Catacomb_Crawler crawler = new Catacomb_Crawler();
+        crawler.start();
+    }
+}

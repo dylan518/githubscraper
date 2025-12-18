@@ -1,0 +1,71 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+class MinMax<T extends Comparable<T>> {
+    private T min;
+    private T max;
+    private int countNonMinMax;  // Број на елементи различни од минимум/максимум
+
+    public MinMax() {
+        min = null;
+        max = null;
+        countNonMinMax = 0;
+    }
+
+    // Метод за ажурирање на минимумот, максимумот и бројот на различни елементи
+    public void update(T element) {
+        if (min == null || element.compareTo(min) < 0) {
+            min = element;
+            countNonMinMax++;  // Update count for non-minimum when a new min is set
+        }
+        if (max == null || element.compareTo(max) > 0) {
+            max = element;
+            countNonMinMax++;  // Update count for non-maximum when a new max is set
+        }
+
+        // If element is not equal to min or max, increase the counter
+        if (!element.equals(min) && !element.equals(max)) {
+            countNonMinMax++;
+        }
+    }
+
+    // Getter за минималниот елемент
+    public T getMin() {
+        return min;
+    }
+
+    // Getter за максималниот елемент
+    public T getMax() {
+        return max;
+    }
+
+    // Преоптоварена toString() метод
+    @Override
+    public String toString() {
+        return min + " " + max + " " + countNonMinMax;
+    }
+}
+
+public class MinAndMax {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int n = scanner.nextInt();
+
+        // За String елементи
+        MinMax<String> strings = new MinMax<>();
+        for (int i = 0; i < n; ++i) {
+            String s = scanner.next();
+            strings.update(s);
+        }
+        System.out.println(strings);
+
+        // За Integer елементи
+        MinMax<Integer> ints = new MinMax<>();
+        for (int i = 0; i < n; ++i) {
+            int x = scanner.nextInt();
+            ints.update(x);
+        }
+        System.out.println(ints);
+    }
+}

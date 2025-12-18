@@ -1,0 +1,35 @@
+package com.example.Sms.Service;
+
+import com.example.Sms.Model.Students;
+import com.example.Sms.Repository.RepositoryStudent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StudentService {
+
+    @Autowired
+    public RepositoryStudent repo;
+
+    public List<Students> fetchAll(){
+        return repo.findAll();
+    }
+
+    public void createStudente(String name, int marks) {
+        Students s = new Students();
+        s.setName(name);
+        s.setMarks(marks);
+        repo.save(s);
+    }
+
+    public void updateStudent(int id, String name, int marks) {
+        repo.updateById(id,name,marks);
+    }
+
+    public void deleteStudent(int id) {
+        repo.deleteById(id);
+    }
+
+}

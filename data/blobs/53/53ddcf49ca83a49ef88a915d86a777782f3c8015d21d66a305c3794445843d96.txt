@@ -1,0 +1,16 @@
+package org.jocata.bank.requestfrom;
+
+import lombok.*;
+import org.jocata.bank.model.AccountType;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class AccountRequestForm {
+    private String accountType;
+    private String userid;
+    private String bankName;
+}

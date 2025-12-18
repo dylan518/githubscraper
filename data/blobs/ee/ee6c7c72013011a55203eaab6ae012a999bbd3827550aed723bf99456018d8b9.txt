@@ -1,0 +1,28 @@
+class Resource {
+    public synchronized void lockResource(Resource otherResource) {
+        System.out.println(Thread.currentThread().getName() + " locked " + this);
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        otherResource.lockThis();
+    }
+
+    public synchronized void lockThis() {
+        System.out.println(Thread.currentThread().getName() + " trying to lock another resource");
+    }
+}
+
+public class prblm15 {
+    public static void main(String[] args) {
+        Resource resource1 = new Resource();
+        Resource resource2 = new Resource();
+
+        Thread thread1 = new Thread(() -> resource1.lockResource(resource2), "Thread1");
+        Thread thread2 = new Thread(() -> resource2.lockResource(resource1), "Thread2");
+
+        thread1.start();
+        thread2.start();
+    }
+}

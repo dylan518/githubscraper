@@ -1,0 +1,70 @@
+package com.tapjoy.internal;
+
+import com.tapjoy.internal.AbstractC8872a4;
+import com.tapjoy.internal.AbstractC8872a4.a;
+import java.io.IOException;
+import java.io.Serializable;
+
+/* renamed from: com.tapjoy.internal.a4 */
+/* loaded from: classes4.dex */
+public abstract class AbstractC8872a4<M extends AbstractC8872a4<M, B>, B extends a<M, B>> implements Serializable {
+
+    /* renamed from: a */
+    public final transient C9124x8 f33355a;
+
+    /* renamed from: b */
+    public transient int f33356b = 0;
+
+    /* JADX DEBUG: Don't trust debug lines info. Lines numbers was adjusted: min line is 1 */
+    public AbstractC8872a4(AbstractC8883b4<M> abstractC8883b4, C9124x8 c9124x8) {
+        if (abstractC8883b4 == null) {
+            throw new NullPointerException("adapter == null");
+        }
+        if (c9124x8 == null) {
+            throw new NullPointerException("unknownFields == null");
+        }
+        this.f33355a = c9124x8;
+    }
+
+    /* JADX DEBUG: Don't trust debug lines info. Lines numbers was adjusted: min line is 1 */
+    /* renamed from: a */
+    public final C9124x8 m34564a() {
+        C9124x8 c9124x8 = this.f33355a;
+        return c9124x8 != null ? c9124x8 : C9124x8.f34440e;
+    }
+
+    /* renamed from: com.tapjoy.internal.a4$a */
+    public static abstract class a<T extends AbstractC8872a4<T, B>, B extends a<T, B>> {
+
+        /* renamed from: a */
+        public C9094u8 f33357a;
+
+        /* renamed from: b */
+        public C8916e4 f33358b;
+
+        /* JADX DEBUG: Don't trust debug lines info. Lines numbers was adjusted: min line is 1 */
+        /* renamed from: a */
+        public final a<T, B> m34565a(int i10, EnumC9139z3 enumC9139z3, Object obj) {
+            if (this.f33358b == null) {
+                C9094u8 c9094u8 = new C9094u8();
+                this.f33357a = c9094u8;
+                this.f33358b = new C8916e4(c9094u8);
+            }
+            try {
+                enumC9139z3.m35103a().mo34594a(this.f33358b, i10, obj);
+                return this;
+            } catch (IOException unused) {
+                throw new AssertionError();
+            }
+        }
+
+        /* renamed from: a */
+        public final C9124x8 m34566a() {
+            C9094u8 c9094u8 = this.f33357a;
+            if (c9094u8 != null) {
+                return new C9124x8(c9094u8.m47944clone().m35029e());
+            }
+            return C9124x8.f34440e;
+        }
+    }
+}

@@ -1,0 +1,27 @@
+package org.Sprint1.esinf.domain;
+import java.util.*;
+public class SimulationSnapshot {
+    public final int time;
+    public final List<MachineStatus> machineStatuses;
+    public final Queue<Article> pendingArticles;
+
+    public SimulationSnapshot(int time, List<MachineStatus> machineStatuses, Queue<Article> pendingArticles) {
+        this.time = time;
+        this.machineStatuses = new ArrayList<>(machineStatuses);
+        this.pendingArticles = new PriorityQueue<>(pendingArticles);
+    }
+
+    public int getTime() {
+        return time;
+    }
+
+    public List<MachineStatus> getMachineStatuses() {
+        return machineStatuses;
+    }
+
+    public Queue<Article> getPendingArticles() {
+        return pendingArticles;
+    }
+
+
+}

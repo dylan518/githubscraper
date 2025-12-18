@@ -1,0 +1,32 @@
+package m.kash.mapdemo.utility;
+
+import m.kash.mapdemo.dtos.RouteResponseDto;
+import m.kash.mapdemo.dtos.RouteResponseDto.StepSummaryDto;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class StepExtractor {
+    public static List<StepSummaryDto> extractStepSummaries(RouteResponseDto routeResponseDto) {
+        List<StepSummaryDto> stepSummaries = new ArrayList<>();
+
+        // Loop through routes
+        for (RouteResponseDto.Route route : routeResponseDto.getRoutes()) {
+            // Loop through legs
+            for (RouteResponseDto.Route.Leg leg : route.getLegs()) {
+                // Loop through steps
+                for (RouteResponseDto.Route.Leg.Step step : leg.getSteps()) {
+                    // Map the relevant fields to StepSummaryDto
+                    StepSummaryDto summary = new StepSummaryDto();
+                    summary.setInstructions(step.getInstructions());
+                    summary.setReadable_distance(step.getReadable_distance());
+                    summary.setManeuver(step.getManeuver());
+                    summary.setReadable_duration(step.getReadable_duration());
+                    stepSummaries.add(summary);
+                }
+            }
+        }
+
+        return stepSummaries;
+    }
+}

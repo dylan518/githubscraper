@@ -1,0 +1,404 @@
+/*
+ * Copyright (c) 2025 JShorelarkEv Contributors
+ *
+ * Licensed under the same terms as the original Shorelark project.
+ * See: https://github.com/patryk27/shorelark
+ */
+package io.jshorelarkev.simulation.ui;
+
+import io.jshorelarkev.simulation.ui.controls.ControlBuilder;
+import io.jshorelarkev.simulation.ui.icons.SvgIcons;
+import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Controls panel for the simulation.
+ *
+ * @author Jose
+ * @version $Id: $Id
+ */
+@Slf4j
+public class SimulationControls extends VBox {
+
+  private static final int ICON_SIZE = 16;
+
+  private static final int BUTTON_SIZE = 32;
+
+  private static final int SPEED_SLIDER_WIDTH = 100;
+
+  private static final int VOLUME_SLIDER_WIDTH = 100;
+
+  /** Helper method to configure button size and style consistently */
+  private void configureButton(Button button) {
+    button.setMinSize(BUTTON_SIZE, BUTTON_SIZE);
+    button.setPrefSize(BUTTON_SIZE, BUTTON_SIZE);
+    button.setMaxSize(BUTTON_SIZE, BUTTON_SIZE);
+    button.getStyleClass().add("icon-button");
+  }
+
+  /** Wrapper for SimulationApplication to prevent external modification. */
+  private static class SimulationApplicationWrapper {
+    private final SimulationApplication app;
+
+    private SimulationApplicationWrapper(SimulationApplication app) {
+      this.app = app;
+    }
+
+    public boolean isPaused() {
+      return app.isPaused();
+    }
+
+    public void setPaused(boolean paused) {
+      app.setPaused(paused);
+    }
+
+    public void resetSimulation() {
+      app.resetSimulation();
+    }
+
+    public void addFoods(int amount) {
+      app.addFoods(amount);
+    }
+
+    public void setSimulationSpeed(double speed) {
+      app.setSimulationSpeed(speed);
+    }
+
+    public int getGeneration() {
+      return app.getGeneration();
+    }
+
+    public int getPopulationSize() {
+      return app.getPopulationSize();
+    }
+
+    public double getBestFitness() {
+      return app.getBestFitness();
+    }
+
+    public ReadOnlyBooleanProperty pausedProperty() {
+      return app.pausedProperty();
+    }
+
+    public void toggleSound() {
+      app.toggleSound();
+    }
+
+    public boolean isSoundEnabled() {
+      return app.isSoundEnabled();
+    }
+
+    public double getGenerationProgress() {
+      return app.getGenerationProgress();
+    }
+
+    public void setVolume(float volume) {
+      app.setVolume(volume);
+    }
+
+    public float getVolume() {
+      return app.getVolume();
+    }
+  }
+
+  /** The wrapped main application. */
+  private final SimulationApplicationWrapper app;
+
+  /** Play/pause button. */
+  private final Button playButton;
+
+  /** Reset button. */
+  private final Button resetButton;
+
+  /** Mute button. */
+  private final Button muteButton;
+
+  /** Volume slider. */
+  private final Slider volumeSlider;
+
+  /** Volume icon. */
+  private final javafx.scene.Node volumeIcon;
+
+  /** Speed slider. */
+  private final Slider speedSlider;
+
+  /** Generation label. */
+  private final Label generationLabel;
+
+  /** Population label. */
+  private final Label populationLabel;
+
+  /** Best fitness label. */
+  private final Label bestFitnessLabel;
+
+  /** Generation progress bar. */
+  private final ProgressBar generationProgress;
+
+  /**
+   * Creates a new controls panel.
+   *
+   * @param app the main application
+   */
+  public SimulationControls(SimulationApplication app) {
+    super();
+    this.app = new SimulationApplicationWrapper(app);
+
+    // Initialize all final components
+    this.playButton = createPlayPauseButton();
+    this.resetButton = createResetButton();
+    this.muteButton = createMuteButton();
+    this.volumeIcon = createVolumeIcon();
+    this.volumeSlider = createVolumeSlider();
+    this.speedSlider = createSpeedSlider();
+    this.generationLabel = new Label("Generation: 0");
+    this.populationLabel = new Label("Population: 0");
+    this.bestFitnessLabel = new Label("Best Fitness: 0.0");
+    this.generationProgress = new ProgressBar(0);
+
+    // Set up the UI
+    setupComponents();
+  }
+
+  private void setupComponents() {
+    setPadding(new Insets(10));
+    setSpacing(10);
+    getStyleClass().add("controls-box");
+
+    var controlsBox = new HBox(10);
+    controlsBox.setAlignment(Pos.CENTER_LEFT);
+
+    var addFoodButton = createAddFoodButton();
+    var speedIcon = SvgIcons.createSpeedIcon(ICON_SIZE, Color.GRAY);
+
+    controlsBox
+        .getChildren()
+        .addAll(
+            playButton,
+            resetButton,
+            addFoodButton,
+            muteButton,
+            volumeIcon,
+            volumeSlider,
+            new Region(),
+            speedIcon,
+            speedSlider);
+    HBox.setHgrow(speedSlider, Priority.ALWAYS);
+
+    var statsBox = new HBox(20);
+    statsBox.setAlignment(Pos.CENTER);
+    statsBox.getStyleClass().add("stats-box");
+
+    generationProgress.setPrefWidth(SPEED_SLIDER_WIDTH);
+    generationProgress.setMaxHeight(10);
+    generationProgress.getStyleClass().add("generation-progress");
+
+    statsBox
+        .getChildren()
+        .addAll(generationLabel, generationProgress, populationLabel, bestFitnessLabel);
+
+    getChildren().addAll(controlsBox, statsBox);
+
+    sceneProperty()
+        .addListener(
+            (obs, oldScene, newScene) -> {
+              if (newScene != null) {
+                setupKeyboardShortcuts(newScene);
+              }
+            });
+
+    updatePlayPauseButton();
+    updateVolumeIcon();
+
+    log.debug("Created simulation controls");
+  }
+
+  private Button createPlayPauseButton() {
+    Button button = new Button();
+    button.setGraphic(SvgIcons.createPlayIcon(ICON_SIZE, Color.GRAY));
+    button.setTooltip(new Tooltip("Play/Pause (Space)"));
+    button.setOnAction(e -> togglePlayPause());
+    configureButton(button);
+
+    app.pausedProperty()
+        .addListener(
+            (obs, oldVal, newVal) -> {
+              button.setGraphic(
+                  newVal
+                      ? SvgIcons.createPlayIcon(ICON_SIZE, Color.GRAY)
+                      : SvgIcons.createPauseIcon(ICON_SIZE, Color.GRAY));
+            });
+
+    return button;
+  }
+
+  private Button createResetButton() {
+    Button button = new Button();
+    button.setGraphic(SvgIcons.createResetIcon(ICON_SIZE, Color.GRAY));
+    button.setTooltip(new Tooltip("Reset simulation"));
+    button.setOnAction(e -> app.resetSimulation());
+    configureButton(button);
+    return button;
+  }
+
+  private Button createAddFoodButton() {
+    Button button = new Button();
+    button.setGraphic(SvgIcons.createFoodIcon(ICON_SIZE, Color.GRAY));
+    button.setTooltip(new Tooltip("Add food"));
+    button.setOnAction(e -> app.addFoods(1));
+    configureButton(button);
+    return button;
+  }
+
+  private Button createMuteButton() {
+    Button button = new Button();
+    button.setGraphic(
+        app.isSoundEnabled()
+            ? SvgIcons.createVolumeHighIcon(ICON_SIZE, Color.GRAY)
+            : SvgIcons.createMutedSoundIcon(ICON_SIZE, Color.GRAY));
+    button.setTooltip(new Tooltip("Toggle sound (M)"));
+    button.setOnAction(
+        e -> {
+          app.toggleSound();
+          updateSoundControls();
+        });
+    configureButton(button);
+    return button;
+  }
+
+  private void updateSoundControls() {
+    boolean soundEnabled = app.isSoundEnabled();
+    float volume = app.getVolume();
+
+    // Update mute button icon
+    muteButton.setGraphic(
+        soundEnabled
+            ? SvgIcons.createVolumeHighIcon(ICON_SIZE, Color.GRAY)
+            : SvgIcons.createMutedSoundIcon(ICON_SIZE, Color.GRAY));
+
+    // Update volume slider
+    volumeSlider.setDisable(!soundEnabled);
+    volumeSlider.setValue(volume);
+  }
+
+  private Slider createSpeedSlider() {
+    return ControlBuilder.slider()
+        .min(0.1)
+        .max(10.0)
+        .value(1.0)
+        .tooltip("Simulation speed")
+        .onValueChanged(
+            (v, o, n) -> Platform.runLater(() -> app.setSimulationSpeed(n.doubleValue())))
+        .build();
+  }
+
+  private javafx.scene.Node createVolumeIcon() {
+    var icon = SvgIcons.createSoundIcon(ICON_SIZE, Color.DARKGRAY, app.getVolume());
+    var container = new javafx.scene.layout.StackPane(icon);
+    container.setMaxSize(ICON_SIZE, ICON_SIZE);
+    container.setPrefSize(ICON_SIZE, ICON_SIZE);
+    container.setMinSize(ICON_SIZE, ICON_SIZE);
+    return container;
+  }
+
+  private void updateVolumeIcon() {
+    boolean soundEnabled = app.isSoundEnabled();
+    float volume = app.getVolume();
+
+    // Update volume icon based on current volume
+    if (volumeIcon != null) {
+      volumeIcon.setOpacity(soundEnabled ? 1.0 : 0.5);
+      var newIcon = SvgIcons.createSoundIcon(ICON_SIZE, Color.DARKGRAY, volume);
+      ((javafx.scene.layout.StackPane) volumeIcon).getChildren().setAll(newIcon);
+    }
+
+    updateSoundControls();
+  }
+
+  private Slider createVolumeSlider() {
+    var slider =
+        ControlBuilder.slider()
+            .min(0.0)
+            .max(1.0)
+            .value(app.getVolume())
+            .tooltip("Sound volume")
+            .onValueChanged(
+                (v, o, n) -> {
+                  app.setVolume(n.floatValue());
+                  updateVolumeIcon();
+                })
+            .build();
+    slider.setPrefWidth(VOLUME_SLIDER_WIDTH);
+    slider.setDisable(!app.isSoundEnabled());
+    return slider;
+  }
+
+  private void setupKeyboardShortcuts(Scene scene) {
+    scene.getAccelerators().put(new KeyCodeCombination(KeyCode.SPACE), this::togglePlayPause);
+
+    scene.getAccelerators().put(new KeyCodeCombination(KeyCode.R), app::resetSimulation);
+
+    scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F), () -> app.addFoods(10));
+
+    scene
+        .getAccelerators()
+        .put(
+            new KeyCodeCombination(KeyCode.PLUS, KeyCombination.CONTROL_DOWN), this::increaseSpeed);
+    scene
+        .getAccelerators()
+        .put(
+            new KeyCodeCombination(KeyCode.MINUS, KeyCombination.CONTROL_DOWN),
+            this::decreaseSpeed);
+
+    scene.getAccelerators().put(new KeyCodeCombination(KeyCode.M), () -> app.toggleSound());
+  }
+
+  private void togglePlayPause() {
+    boolean wasPaused = app.isPaused();
+    app.setPaused(!wasPaused);
+  }
+
+  private void updatePlayPauseButton() {
+    if (app.isPaused()) {
+      playButton.setGraphic(SvgIcons.createPlayIcon(ICON_SIZE, Color.GRAY));
+      playButton.setTooltip(new Tooltip("Resume simulation (Space)"));
+    } else {
+      playButton.setGraphic(SvgIcons.createPauseIcon(ICON_SIZE, Color.GRAY));
+      playButton.setTooltip(new Tooltip("Pause simulation (Space)"));
+    }
+  }
+
+  private void increaseSpeed() {
+    speedSlider.setValue(Math.min(speedSlider.getValue() * 2, speedSlider.getMax()));
+  }
+
+  private void decreaseSpeed() {
+    speedSlider.setValue(Math.max(speedSlider.getValue() / 2, speedSlider.getMin()));
+  }
+
+  /** Updates the statistics display. */
+  public void updateStats() {
+    generationLabel.setText(String.format("Generation: %d", app.getGeneration()));
+    populationLabel.setText(String.format("Population: %d", app.getPopulationSize()));
+    bestFitnessLabel.setText(String.format("Best Fitness: %.1f", app.getBestFitness()));
+
+    double progress = app.getGenerationProgress();
+    generationProgress.setProgress(progress);
+  }
+}

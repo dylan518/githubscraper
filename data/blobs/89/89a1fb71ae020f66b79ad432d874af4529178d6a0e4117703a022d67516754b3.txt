@@ -1,0 +1,51 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pokemon;
+
+/**
+ *
+ * @author Lazim Al Ahasan
+ */
+public class GrassPokemon implements Pokemon {
+    private String name;
+    private int level;
+
+    public GrassPokemon(String name, int level) {
+        this.name = name;
+        this.level = level;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void levelUp() {
+        level++;
+    }
+
+    public void attack() {
+        int choice = (int) Math.ceil(3 * Math.random());
+        if (choice == 1) {
+            System.out.println(name + " has used Vine Whip");
+        } else if (choice == 2) {
+            System.out.println(name + " has used Razor Leaf");
+        } else {
+            System.out.println(name + " has used Leech Seed");
+        }
+    }
+
+    public void displayInfo() {
+        System.out.println("Name: " + name + ", Type: Grass, Level: " + level);
+    }
+}

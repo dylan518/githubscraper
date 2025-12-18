@@ -1,0 +1,26 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package tugas2;
+
+/**
+ *
+ * @author Lenovo
+ */
+public class Tugas2_3 {
+    public static void main(String[] args) {
+        char karakterA = 'A';
+        char karakterB = 'B';
+        
+        int asciiA = (int) karakterA;
+        int asciiB = (int) karakterB;
+        
+        int jumlahAscii = asciiA + asciiB;
+        
+        System.out.println("Kode ASCII dari 'A': " + asciiA);
+        System.out.println("Kode ASCII dari 'B': " + asciiB);
+        System.out.println("Jumlah kode ASCII 'A' dan 'B': " + jumlahAscii);
+    }
+    
+}

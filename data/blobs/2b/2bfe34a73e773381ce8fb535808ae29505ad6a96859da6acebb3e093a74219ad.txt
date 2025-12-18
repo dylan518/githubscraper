@@ -1,0 +1,52 @@
+package MapDemo;
+
+import java.lang.ref.WeakReference;
+
+public class GC {
+    public static void main(String[] args) {
+
+        //strong reference
+      /*  Phone p = new Phone("iphone", "16 pro max");
+        System.out.println(p);
+        p=null;
+        System.gc();
+        System.out.println(p);*/
+
+        //weak reference
+        WeakReference<Phone> wr = new WeakReference<>(new Phone("iphone", "16 pro max"));
+        System.out.println(wr.get());
+        System.gc();
+
+        try{
+             Thread.sleep(10000);
+        }catch(Exception ignore){
+
+        }
+        System.out.println(wr.get());
+
+
+    }
+}
+
+     class Phone{
+
+        String name;
+        String model;
+
+         @Override
+         public String toString() {
+             return "Phone{" +
+                     "name='" + name + '\'' +
+                     ", model='" + model + '\'' +
+                     '}';
+         }
+
+         public Phone(String name, String model) {
+            this.name = name;
+            this.model = model;
+
+        }
+    }
+
+
+

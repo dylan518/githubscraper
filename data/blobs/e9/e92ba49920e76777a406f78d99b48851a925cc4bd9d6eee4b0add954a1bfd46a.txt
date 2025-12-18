@@ -1,0 +1,47 @@
+package day18_tasks;
+
+import java.util.Scanner;
+
+/*
+Task #12/21 - MultiplyEnd
+
+    Create a class called MultiplyEnd in your Practice_Programming project and inside the day18_tasks package
+
+        Task:
+                    Multiply End [String, Loops]
+
+                    Given a String and a number return a String that has the ending character duplicated and attached by the number amount of times
+
+                        Ex:
+                            Input:
+                                Hello?
+                                3
+                            Output:
+                                Hello????
+
+                        Ex:
+                            Input:
+                                java
+                                5
+                            Output:
+                                javaaaaaa
+ */
+public class MultiplyEnd {
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        System.out.println("Please, enter a word and a number: ");
+        String str = input.next();
+        int num = input.nextInt();
+
+        char lastChar = str.charAt(str.length() - 1);
+        String endOfResult = "";
+
+        for (int i = 1; i <= num; i++) {
+            endOfResult += lastChar;
+
+        }
+        String result = str + endOfResult;
+        System.out.println(result);
+    }
+}
+

@@ -1,0 +1,48 @@
+package com.nishikatakagi.ProductDigital.service_impl;
+
+import com.nishikatakagi.ProductDigital.model.Header;
+import com.nishikatakagi.ProductDigital.repository.HeaderRepository;
+import com.nishikatakagi.ProductDigital.service.HeaderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class HeaderServiceImpl implements HeaderService {
+
+    @Autowired
+    private HeaderRepository headerRepository;
+
+    @Override
+    public List<Header> getAllHeaders() {
+        return headerRepository.findAll();
+    }
+
+    @Override
+    public Header getHeaderById(Long id) {
+        return headerRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public Header createHeader(Header header) {
+        return headerRepository.save(header);
+    }
+
+    @Override
+    public Header updateHeader(Long id, Header headerDetails) {
+        Header header = headerRepository.findById(id).orElse(null);
+        if (header != null) {
+            header.setTitle(headerDetails.getTitle());
+            header.setUrl(headerDetails.getUrl());
+            header = headerRepository.save(header);
+        }
+        return header;
+    }
+
+    @Override
+    public void deleteHeader(Long id) {
+        headerRepository.deleteById(id);
+    }
+
+}

@@ -1,0 +1,58 @@
+package com.example.demo.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "Users")
+@Data
+public class User {
+    @Id
+    @Column(name = "user_id", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID userId;
+
+    @Column(name = "email", nullable = false, unique = true, length = 255)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Must be a valid email address")
+    private String email;
+
+    @Column(name = "password", nullable = false, length = 255)
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 255, message = "Password must be between 8 and 255 characters")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=]).*$", 
+            message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character")
+    private String password;
+
+    @Column(name = "full_name", length = 100)
+    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Full name can only contain letters and spaces")
+    private String fullName;
+
+    @Column(name = "role", nullable = false, length = 50)
+    @NotBlank(message = "Role is required")
+    @Pattern(regexp = "^(user|admin)$", message = "Role must be either 'user' or 'admin'")
+    private String role = "user";
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (userId == null) {
+            userId = UUID.randomUUID();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}

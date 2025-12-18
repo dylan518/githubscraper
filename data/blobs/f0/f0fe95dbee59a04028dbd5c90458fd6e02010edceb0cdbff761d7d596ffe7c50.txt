@@ -1,0 +1,136 @@
+package card;
+
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
+
+public class TarotApp extends JFrame {
+    private TarotDeck deck;
+    private FadeInImagePanel cardImagePanel;
+//    private JLabel cardImageLabel;
+    private JLabel cardNameLabel;
+    private JLabel cardDescriptionLabel1;
+    private JLabel cardDescriptionLabel2;
+    private JLabel cardPositionLabel;
+    private JLabel copyrightLabel;
+
+    public TarotApp() {
+    	ImageIcon icons = new ImageIcon("icon.png");
+        super.setIconImage(icons.getImage());
+        
+        deck = new TarotDeck();
+
+        setTitle("Tarot Card Reading");
+        setSize(400, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(null);
+        
+        copyrightLabel = new JLabel("@siduki_san");
+        copyrightLabel.setForeground(Color.GRAY);
+        copyrightLabel.setBounds(300, 530, 100, 30);
+        add(copyrightLabel);
+
+        JLabel imageLabel = new JLabel(new ImageIcon("tarottitle.png"));
+        imageLabel.setBounds(40, 16, 300, 90);
+        add(imageLabel);
+
+        cardNameLabel = new JLabel("");
+        cardNameLabel.setBounds(108, 370+84, 300, 30);
+        add(cardNameLabel);
+
+//        JButton drawButton = new JButton("カードを引く");
+//        drawButton.setBounds(130, 40+80, 120, 30);
+//        add(drawButton);
+        
+        ImageIcon icon = new ImageIcon("button.png");
+        JButton button = new JButton("", icon);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setBounds(112, 40+80, 150, 30);
+        add(button);
+
+        
+        cardPositionLabel = new JLabel("");
+        cardPositionLabel.setBounds(160, 78+80, 300, 30);
+        add(cardPositionLabel);
+
+        cardImagePanel = new FadeInImagePanel(null);
+        cardImagePanel.setBounds(100, 100, 200, 300);
+        add(cardImagePanel);
+//        cardImageLabel = new JLabel();
+//        cardImageLabel.setBounds(110, 100+84, 155, 265);
+//        add(cardImageLabel);
+
+        cardNameLabel = new JLabel("");
+        cardNameLabel.setBounds(108, 370+84, 300, 30);
+        add(cardNameLabel);
+
+        cardDescriptionLabel1 = new JLabel("");
+        cardDescriptionLabel1.setBounds(108, 395+84, 300, 30);
+        add(cardDescriptionLabel1);
+        cardDescriptionLabel2 = new JLabel("");
+        cardDescriptionLabel2.setBounds(108, 415+84, 300, 30);
+        add(cardDescriptionLabel2);
+
+        //drawButton.addActionListener(new ActionListener() {
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TarotCard card = deck.drawCard();
+                BufferedImage image = loadImage(card.getImagePath());
+
+                if (card.isReversed()) {
+                    image = rotateImage(image);
+                }
+                
+                cardImagePanel = new FadeInImagePanel(image);
+                cardImagePanel.setBounds(110, 100+84, 155, 265);
+                add(cardImagePanel);
+                cardImagePanel.startAnimation();
+                
+                //cardImageLabel.setIcon(new ImageIcon(image));
+                cardNameLabel.setText(card.getName());
+                cardPositionLabel.setText(card.isReversed() ? "< 逆位置 >" : "< 正位置 >");
+                cardDescriptionLabel1.setText(card.getDescription1());
+                cardDescriptionLabel2.setText(card.getDescription2());
+                repaint();
+                
+            }
+        });
+    }
+
+    private BufferedImage loadImage(String path) {
+        try {
+            return ImageIO.read(new File(path));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
+        }
+    }
+
+    private BufferedImage rotateImage(BufferedImage image) {
+        AffineTransform tx = AffineTransform.getRotateInstance(Math.PI, image.getWidth() / 2, image.getHeight() / 2);
+        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_BILINEAR);
+        return op.filter(image, null);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            TarotApp app = new TarotApp();
+            app.setVisible(true);
+        });
+    }
+}
